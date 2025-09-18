@@ -1,0 +1,10 @@
+* text=auto eol=crlf
+*.pdf binary
+*.psd binary
+*.png binary
+*.jpg binary
+*.gif binary
+*.webp binary
+*.mp3 binary
+*.ogg binary
+*.wav binary
