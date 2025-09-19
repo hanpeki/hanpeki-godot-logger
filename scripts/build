@@ -9,6 +9,8 @@
 # Configuration
 SEVEN_ZIP="/c/Program Files/7-Zip/7z.exe"
 PLUGIN_FOLDER="./addons/hanpeki_godot_logger"
+PLUGIN_CONFIG_FILE="${PLUGIN_FOLDER}/plugin.cfg"
+VERSION_GD_FILE="${PLUGIN_FOLDER}/logger.gd"
 OUTPUT_FOLDER="./out"
 
 # Constants
@@ -49,12 +51,14 @@ trap cleanup EXIT
 TMP_FILE=$(mktemp)
 
 # Calculate variables to use
-plugin_cfg="${PLUGIN_FOLDER}/plugin.cfg"
-plugin_name=$(grep -E '^name=' ${plugin_cfg} | sed -E 's/name="([^"]+)"/\1/')
-plugin_version=$(grep -E '^version=' ${plugin_cfg} | sed -E 's/version="([^"]+)"/\1/')
+plugin_name=$(grep -E '^name=' "${PLUGIN_CONFIG_FILE}" | sed -E 's/name="([^"]+)"/\1/')
+plugin_version=$(grep -E '^const VERSION\s*=\s*"' "${VERSION_GD_FILE}" | sed -E "s/.*['\"]([^'\"]+)['\"].*/\\1/")
 zip_file="${OUTPUT_FOLDER}/$(basename "${PLUGIN_FOLDER}")-${plugin_version}.zip"
 # Initial dot needs to be removed for paths to be preserved
 find "${PLUGIN_FOLDER}" -type f ! -name "*.uid" | sed 's|^\./||' > "${TMP_FILE}"
+
+# Inject the version from the class into the plugin config
+sed -i.bak -E "s/^(version\s*=\s*['\"])[^'\"]+/\\1${plugin_version}/" "${PLUGIN_CONFIG_FILE}"
 
 # Output feedback
 echo -e "Creating a .zip file for ${COLOR_NAME}${plugin_name} ${COLOR_VERSION}v${plugin_version}${COLOR_RESET} > ${COLOR_FILE}${zip_file}${COLOR_RESET}"
@@ -70,3 +74,6 @@ fi
 
 # Create the zip file
 "$SEVEN_ZIP" a "$zip_file" @"${TMP_FILE}" | grep -E "(Add new data)|(Everything is Ok)"
+
+# Revert the changes done in the plugin config
+mv "${PLUGIN_CONFIG_FILE}".bak "${PLUGIN_CONFIG_FILE}"

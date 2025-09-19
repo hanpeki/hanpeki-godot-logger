@@ -30,6 +30,8 @@ enum {
 	FATAL = 1 << 4
 }
 
+# This version is used in the build process for the plugin config and the zip filename
+const VERSION = "1.0.0-rc.1"
 ## Name to display when an unregistered level is used
 const LEVEL_DEFAULT_NAME = 'Unknown';
 ## Value for undefined namespaces
@@ -40,7 +42,7 @@ const NS_UNDEFINED = &""
 ##
 static func create(options: Options) -> HanpekiLogger:
 	var logger = HanpekiLogger.new()
-	
+
 	for entry in options.custom_levels:
 		if (!entry.has("level")):
 			assert(false, 'wrong configuration in "custom_levels". "level" field not found')
@@ -71,7 +73,7 @@ var _names: Dictionary[int, String] = {
 }
 
 ## All registered levels, as they need to be unique at bit level (i.e. 1 | 2 | 4 ... 64)
-var _registered_levels: int = DEBUG| INFO| WARN| ERROR| FATAL
+var _registered_levels: int = DEBUG | INFO | WARN | ERROR | FATAL
 ## Minimum level to log, defaults to ERROR and FATAL
 var _level: int = ERROR | FATAL
 
@@ -180,11 +182,11 @@ func fatal(msg: String, ns: StringName = NS_UNDEFINED) -> void:
 ##
 func message(level: int, msg: String, ns: StringName = NS_UNDEFINED) -> void:
 	assert(_registered_levels & level != NONE, "Trying to use an unregistered level")
-	
+
 	if (level & _level == NONE): return
 	var transports = _get_active_transports(level)
 	if (transports.size() == NONE): return
-	
+
 	var msgData = MsgData.new()
 	msgData.time = Time.get_unix_time_from_system()
 	msgData.utime = Time.get_ticks_msec()
@@ -192,7 +194,7 @@ func message(level: int, msg: String, ns: StringName = NS_UNDEFINED) -> void:
 	msgData.level_name = _names.get(level, LEVEL_DEFAULT_NAME)
 	msgData.msg = msg
 	msgData.ns = ns
-	
+
 	for transport in transports:
 		transport.process(msgData)
 
@@ -227,18 +229,18 @@ class Options:
 class Transport:
 	## Level to use by the transport, by default the same as the logger where it's registered
 	var _level: int = HanpekiLogger.INHERIT
-	## How to format the time with [member _get_time_str] 
+	## How to format the time with [member _get_time_str]
 	var _time_format: TimeFormat = TimeFormat.SYSTEM_TIME
 	## Timezone offset in secs
-	var _time_bias:int
-	
+	var _time_bias: int
+
 	##
 	## Apply an [param options] object
 	##
 	func set_options(options: Options) -> void:
 		_level = HanpekiLogger.INHERIT if options == null else options.level
 		_time_format = HanpekiLogger.Transport.TimeFormat.SYSTEM_TIME if options == null else options.time_format
-	
+
 	##
 	## Level to use by this Transport independently from the one set in the logger.
 	## Note that it works as an AND operation. If the logger has a level disabled, the messages
@@ -249,13 +251,13 @@ class Transport:
 			_level |= level
 		else:
 			_level &= ~level
-	
+
 	##
 	## How to format the time displayed in the messages logged by this transport
 	##
 	func set_time_format(time_format: TimeFormat) -> void:
 		_time_format = time_format
-	
+
 	##
 	## Method called when the transport needs to log an already "parsed" message
 	##
@@ -277,7 +279,7 @@ class Transport:
 				if (_time_format == TimeFormat.UTC_TIME || _time_format == TimeFormat.UTC_DATE_TIME)
 				else data.time + _time_bias)
 			var ms = data.utime % 1000
-			
+
 			if (_time_format == TimeFormat.UTC_TIME || _time_format == TimeFormat.SYSTEM_TIME):
 				var time = Time.get_time_dict_from_unix_time(unix)
 				return "%02d:%02d:%02d.%03d" % [time.hour, time.minute, time.second, ms]
@@ -288,7 +290,7 @@ class Transport:
 					time.hour, time.minute, time.second,
 					ms
 				]
-	
+
 	## Available ways to format the time via [member _get_time_str]
 	enum TimeFormat {
 		## Formats the time as the local system
