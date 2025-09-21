@@ -24,11 +24,12 @@ var _formatting: bool = DEFAULT_FORMATTING
 var _datetime_format: String = "[bgcolor=#333033][color=grey] {time} [/color][/bgcolor]"
 ## Formats to apply to the levels as a BBTag with [code]{level}[/code] replaced
 var _level_formats: Dictionary[int, String] = {
-	DEBUG: "[color=grey][{level}][/color] ",
-	INFO: "[color=#5cf][{level}][/color]  ",
-	WARN: "[color=yellow][{level}][/color]  ",
-	ERROR: "[color=red][{level}][/color] ",
-	FATAL: "[bgcolor=red][color=white][{level}][/color][/bgcolor] ",
+	DEBUG: "[color=grey][{level}][/color]",
+	INFO: "[color=#5cf][{level}][/color] ",
+	CORE: "[color=green][{level}][/color] ",
+	WARN: "[color=yellow][{level}][/color] ",
+	ERROR: "[color=red][{level}][/color]",
+	FATAL: "[bgcolor=red][color=white][{level}][/color][/bgcolor]",
 }
 ## Formats to apply to the levels as a BBTag with [code]{ns}[/code] replaced
 var _ns_formats: Dictionary[StringName, String] = {}

@@ -22,12 +22,18 @@ enum {
 	DEBUG = 1,
 	## Informational messages to follow the code flow
 	INFO = 1 << 1,
+	## Important messages but not warning nor errors
+	CORE = 1 << 2,
 	## Unexpected, but non-breaking happenings
-	WARN = 1 << 2,
+	WARN = 1 << 3,
 	## Unexpected happening that might break parts when not handled
-	ERROR = 1 << 3,
+	ERROR = 1 << 4,
 	## Only used for errors that make the app crash
-	FATAL = 1 << 4
+	FATAL = 1 << 5,
+	## Maximum level just for reference. Every custom defined level must be
+	## lower than this one (and greater than FATAL).
+	## It can be used with [member enable_levels_from] to disable all logs
+	MAX_LEVEL = 1 << 63,
 }
 
 # This version is used in the build process for the plugin config and the zip filename
@@ -70,15 +76,16 @@ static func create(options: Options) -> HanpekiLogger:
 var _names: Dictionary[int, String] = {
 	DEBUG: "Debug",
 	INFO: "Info",
+	CORE: "Core",
 	WARN: "Warn",
 	ERROR: "Error",
 	FATAL: "Fatal",
 }
 
 ## All registered levels, as they need to be unique at bit level (i.e. 1 | 2 | 4 ... 64)
-var _registered_levels: int = DEBUG | INFO | WARN | ERROR | FATAL
-## Minimum level to log, defaults to ERROR and FATAL
-var _level: int = ERROR | FATAL
+var _registered_levels: int = DEBUG | INFO | CORE | WARN | ERROR | FATAL
+## Levels to log, defaults to IMPORTANT, WARN, ERROR and FATAL
+var _level: int = CORE | WARN | ERROR | FATAL
 
 ## List of added transports
 var _transports: Array[Transport]
@@ -103,12 +110,15 @@ func get_level_name(level: int) -> String:
 ##
 ## Registers a custom [param level]. It needs to be greater than
 ## [enum HanpekiLogger.FATAL] to avoid modifying the default levels,
-## and unique at a bit level (i.e. [code]1 << 5[/code]) to allow
-## more flexibility than just strict numerical order when enabling/disabling
-## them
+## and a power of two (i.e. [code]1 << 5[/code]) which allows more flexibility
+## than just strict numerical order when enabling/disabling them
 ##
 func register_level(level: int, name: String) -> void:
-	assert(level > FATAL, "Level must be greater than FATAL (%d)" % FATAL)
+	assert(
+		level > FATAL,
+		"Level must be greater than FATAL (%d), lower than MAX_LEVEL (%d) and a power of two" % [
+			FATAL, MAX_LEVEL
+		])
 	assert(_registered_levels & level == NONE, "Level already exist. It will be overwritten")
 	_registered_levels |= level
 	_names[level] = name
@@ -161,6 +171,12 @@ func debug(msg: String, ns: StringName = NS_UNDEFINED) -> void:
 ##
 func info(msg: String, ns: StringName = NS_UNDEFINED) -> void:
 	message(INFO, msg, ns)
+
+##
+## Logs the given [param msg] with level = [enum HanpekiLogger.CORE] and an optional [param ns]
+##
+func core(msg: String, ns: StringName = NS_UNDEFINED) -> void:
+	message(CORE, msg, ns)
 
 ##
 ## Logs the given [param msg] with level = [enum HanpekiLogger.WARN] and an optional [param ns]
@@ -375,6 +391,13 @@ class WithBindedNs:
 	func info(msg: String) -> void:
 		if (!_isActive(INFO)): return
 		_logger.message(INFO, msg, _ns)
+
+	##
+	## Logs the given [param msg] with level = [enum HanpekiLogger.CORE] using the binded namespace
+	##
+	func core(msg: String) -> void:
+		if (!_isActive(CORE)): return
+		_logger.message(CORE, msg, _ns)
 
 	##
 	## Logs the given [param msg] with level = [enum HanpekiLogger.WARN] using the binded namespace
