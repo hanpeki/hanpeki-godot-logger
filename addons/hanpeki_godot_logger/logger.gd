@@ -56,10 +56,14 @@ static func create(options: Options) -> HanpekiLogger:
 		var name = entry.get("name", LEVEL_DEFAULT_NAME)
 		logger.register_level(entry.level, name)
 
+	if (options.level != ""):
+		logger.enable_levels_from(options.level)
+
 	# set levels only when provided (NONE can be provided explicitly)
 	# if no levels are given, the defaults are kept
 	if (options.levels.size() > 0):
-		logger._level = NONE
+		if (options.level == ""):
+			logger._level = NONE
 		for entry in options.levels:
 			var level = null
 			if (typeof(entry) == TYPE_INT):
@@ -142,6 +146,17 @@ func set_level(level: int, enabled: bool) -> void:
 		_level |= level
 	else:
 		_level &= ~level
+
+##
+## Enable all levels higher or equal than the given [param level].
+## Useful if all the defined levels are sorted from the least important (1) to the most
+## important (2^n) like most libraries do.
+## If [member NONE] is given, every level will be enabled.
+## If [member MAX_LEVEL] is given, every level will be disabled.
+##
+func enable_levels_from(level: int) -> void:
+	assert(level == NONE || _registered_levels & level != NONE, "Trying to set an unregistered level")
+	_level = ~(level - 1)
 
 ##
 ## Adds a transport to process the messages. Messages will be provided to
@@ -237,8 +252,13 @@ class Options:
 	## List of custom levels to add (appart from the default ones) as
 	## [code]{ level: int, name: string, color?: String | Color }[/code]
 	var custom_levels: Array[Dictionary]
-	## List of active levels. Any other level will be disabled
+	## Minimum level set to be enabled with [member HanpekiLogger.enable_levels_from]
 	## Can be provided as the int value or the level name (case-insensitive)
+	## Leave empty to use only [code]levels[/code] or the default levels
+	var level: Variant
+	## List of active levels. Any other level will be disabled
+	## Each level can be provided as the int value or the level name (case-insensitive)
+	## Leave empty to use only [code]level[/code] or the default levels
 	var levels: Array[Variant]
 
 
