@@ -50,16 +50,19 @@ static func create(options: Options) -> HanpekiLogger:
 		var name = entry.get("name", LEVEL_DEFAULT_NAME)
 		logger.register_level(entry.level, name)
 
-	logger._level = NONE
-	for entry in options.levels:
-		var level = null
-		if (typeof(entry) == TYPE_INT):
-			level = entry
-		elif (typeof(entry) == TYPE_STRING):
-			level = logger.get_level_from_name(entry)
-		if (level == null):
-			assert(false, 'unknown level in "levels"')
-		logger.set_level(level, true)
+	# set levels only when provided (NONE can be provided explicitly)
+	# if no levels are given, the defaults are kept
+	if (options.levels.size() > 0):
+		logger._level = NONE
+		for entry in options.levels:
+			var level = null
+			if (typeof(entry) == TYPE_INT):
+				level = entry
+			elif (typeof(entry) == TYPE_STRING):
+				level = logger.get_level_from_name(entry)
+			if (level == null):
+				assert(false, 'unknown level in "levels"')
+			logger.set_level(level, true)
 
 	return logger
 
