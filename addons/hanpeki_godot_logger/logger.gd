@@ -19,17 +19,17 @@ enum {
 	NONE = 0,
 	## The lower level, only used for set the Logger silent
 	## Debug messages
-	DEBUG = 1,
+	DEBUG = 1 << 5,
 	## Informational messages to follow the code flow
-	INFO = 1 << 1,
+	INFO = 1 << 10,
 	## Important messages but not warning nor errors
-	CORE = 1 << 2,
+	CORE = 1 << 15,
 	## Unexpected, but non-breaking happenings
-	WARN = 1 << 3,
+	WARN = 1 << 20,
 	## Unexpected happening that might break parts when not handled
-	ERROR = 1 << 4,
+	ERROR = 1 << 25,
 	## Only used for errors that make the app crash
-	FATAL = 1 << 5,
+	FATAL = 1 << 30,
 	## Maximum level just for reference. Every custom defined level must be
 	## lower than this one (and greater than FATAL).
 	## It can be used with [member enable_levels_from] to disable all logs
@@ -56,7 +56,7 @@ static func create(options: Options) -> HanpekiLogger:
 		var name = entry.get("name", LEVEL_DEFAULT_NAME)
 		logger.register_level(entry.level, name)
 
-	if (options.level != ""):
+	if (options.level != null && options.level != ""):
 		logger.enable_levels_from(options.level)
 
 	# set levels only when provided (NONE can be provided explicitly)
