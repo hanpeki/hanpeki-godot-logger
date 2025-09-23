@@ -172,8 +172,8 @@ func add_transport(transport: Transport) -> void:
 ## Returns a [HanpekiLogger] with the [param ns] namespace binded, where logging the methods
 ## don't need the [code]ns[/code] parameter anymore as they will use the provided [param ns]
 ##
-func bind_ns(ns: StringName) -> WithBindedNs:
-	var binded = WithBindedNs.new()
+func bind_ns(ns: StringName) -> WithBoundNs:
+	var binded = WithBoundNs.new()
 	binded._logger = self
 	binded._ns = ns
 	return binded
@@ -392,7 +392,7 @@ class MsgData:
 ## param. Instead, they always use the binded one.
 ## It can have its own [code]level[/code] for granular setting per namespace.
 ##
-class WithBindedNs:
+class WithBoundNs:
 	## Binded namespace
 	var _ns: StringName
 	## Binded logger
