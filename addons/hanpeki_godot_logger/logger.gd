@@ -33,13 +33,11 @@ enum {
 	## Maximum level just for reference. Every custom defined level must be
 	## lower than this one (and greater than FATAL).
 	## It can be used with [member enable_levels_from] to disable all logs
-	MAX_LEVEL = 1 << 63,
+	MAX_LEVEL = 1 << 62 # (highest positive power of two in Godot: 2^62)
 }
 
 # This version is used in the build process for the plugin config and the zip filename
 const VERSION = "1.0.0-rc.1"
-## Name to display when an unregistered level is used
-const LEVEL_DEFAULT_NAME = 'Unknown';
 ## Value for undefined namespaces
 const NS_UNDEFINED = &""
 
@@ -48,32 +46,7 @@ const NS_UNDEFINED = &""
 ##
 static func create(options: Options) -> HanpekiLogger:
 	var logger = HanpekiLogger.new()
-
-	for entry in options.custom_levels:
-		if (!entry.has("level")):
-			assert(false, 'wrong configuration in "custom_levels". "level" field not found')
-			continue;
-		var name = entry.get("name", LEVEL_DEFAULT_NAME)
-		logger.register_level(entry.level, name)
-
-	if (options.level != null && options.level != ""):
-		logger.enable_levels_from(options.level)
-
-	# set levels only when provided (NONE can be provided explicitly)
-	# if no levels are given, the defaults are kept
-	if (options.levels.size() > 0):
-		if (options.level == ""):
-			logger._level = NONE
-		for entry in options.levels:
-			var level = null
-			if (typeof(entry) == TYPE_INT):
-				level = entry
-			elif (typeof(entry) == TYPE_STRING):
-				level = logger.get_level_from_name(entry)
-			if (level == null):
-				assert(false, 'unknown level in "levels"')
-			logger.set_level(level, true)
-
+	logger.set_options(options)
 	return logger
 
 ## Name to display for each level
@@ -93,6 +66,37 @@ var _level: int = CORE | WARN | ERROR | FATAL
 
 ## List of added transports
 var _transports: Array[Transport]
+
+##
+## Apply multiple settings at once from the given [param options] configuration
+##
+func set_options(options: HanpekiLogger.Options) -> void:
+	for entry in options.custom_levels:
+		if (!entry.has("level")):
+			assert(false, 'wrong configuration in "custom_levels". "level" field not found')
+			continue;
+		if (!entry.has("name")):
+			assert(false, 'wrong configuration in "custom_levels". "name" field not found')
+			continue;
+		register_level(entry.level, entry.name)
+
+	if (options.level):
+		enable_levels_from(options.level)
+
+	# set levels only when provided (NONE can be provided explicitly)
+	# if no levels are given, the defaults are kept
+	if (options.levels.size() > 0):
+		if (!options.level):
+			_level = NONE
+		for entry in options.levels:
+			var level = null
+			if (typeof(entry) == TYPE_INT):
+				level = entry
+			elif (typeof(entry) == TYPE_STRING):
+				level = get_level_from_name(entry)
+			if (level == null):
+				assert(false, 'unknown level in "levels"')
+			set_level(level, true)
 
 ##
 ## Retrieves the value of a level from its name (case-insensitive)
@@ -124,7 +128,14 @@ func register_level(level: int, name: String) -> void:
 		"Level must be greater than FATAL (%d), lower than MAX_LEVEL (%d) and a power of two" % [
 			FATAL, MAX_LEVEL
 		])
-	assert(_registered_levels & level == NONE, "Level already exist. It will be overwritten")
+	assert(_registered_levels & level == NONE, "Level already exists. It will be overwritten")
+	var is_unique_name = true
+	var lc_name = name.to_lower()
+	for k in _names:
+		if (_names[k].to_lower() == lc_name):
+			is_unique_name = false
+			break
+	assert(is_unique_name, 'A level with name "%s" already exists. Please provide an unique name')
 	_registered_levels |= level
 	_names[level] = name
 
@@ -172,8 +183,8 @@ func add_transport(transport: Transport) -> void:
 ## Returns a [HanpekiLogger] with the [param ns] namespace binded, where logging the methods
 ## don't need the [code]ns[/code] parameter anymore as they will use the provided [param ns]
 ##
-func bind_ns(ns: StringName) -> WithBindedNs:
-	var binded = WithBindedNs.new()
+func bind_ns(ns: StringName) -> WithBoundNs:
+	var binded = WithBoundNs.new()
 	binded._logger = self
 	binded._ns = ns
 	return binded
@@ -229,7 +240,7 @@ func message(level: int, msg: String, ns: StringName = NS_UNDEFINED) -> void:
 	msgData.time = Time.get_unix_time_from_system()
 	msgData.utime = Time.get_ticks_msec()
 	msgData.level = level
-	msgData.level_name = _names.get(level, LEVEL_DEFAULT_NAME)
+	msgData.level_name = _names[level]
 	msgData.msg = msg
 	msgData.ns = ns
 
@@ -240,12 +251,14 @@ func message(level: int, msg: String, ns: StringName = NS_UNDEFINED) -> void:
 ## Check if a level is valid
 ##
 static func _is_valid_level(level: int, custom: bool = false) -> bool:
-	# must be positive
-	if (level < 0): return false;
 	# must be power of two
 	if (level & (level - 1)) != 0: return false
-	# custom levels must be in a valid range
-	return !custom || (level >= FATAL && level < MAX_LEVEL)
+	return (
+    # custom levels must be in a valid range
+		(level > FATAL && level < MAX_LEVEL) if custom
+		# in any case, they should be positive
+		else (level > 0 && level <= MAX_LEVEL)
+	)
 
 ##
 ## Gets the list of transports to use for a given [param level]
@@ -265,7 +278,7 @@ func _get_active_transports(level: int) -> Array[Transport]:
 ##
 class Options:
 	## List of custom levels to add (appart from the default ones) as
-	## [code]{ level: int, name: string, color?: String | Color }[/code]
+	## [code]{ level: int, name: string }[/code]
 	var custom_levels: Array[Dictionary]
 	## Minimum level set to be enabled with [member HanpekiLogger.enable_levels_from]
 	## Can be provided as the int value or the level name (case-insensitive)
@@ -392,7 +405,7 @@ class MsgData:
 ## param. Instead, they always use the binded one.
 ## It can have its own [code]level[/code] for granular setting per namespace.
 ##
-class WithBindedNs:
+class WithBoundNs:
 	## Binded namespace
 	var _ns: StringName
 	## Binded logger
