@@ -254,7 +254,7 @@ static func _is_valid_level(level: int, custom: bool = false) -> bool:
 	# must be power of two
 	if (level & (level - 1)) != 0: return false
 	return (
-	# custom levels must be in a valid range
+    # custom levels must be in a valid range
 		(level > FATAL && level < MAX_LEVEL) if custom
 		# in any case, they should be positive
 		else (level > 0 && level <= MAX_LEVEL)
@@ -278,7 +278,7 @@ func _get_active_transports(level: int) -> Array[Transport]:
 ##
 class Options:
 	## List of custom levels to add (appart from the default ones) as
-	## [code]{ level: int, name: string, color?: String | Color }[/code]
+	## [code]{ level: int, name: string }[/code]
 	var custom_levels: Array[Dictionary]
 	## Minimum level set to be enabled with [member HanpekiLogger.enable_levels_from]
 	## Can be provided as the int value or the level name (case-insensitive)
