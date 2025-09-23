@@ -48,32 +48,7 @@ const NS_UNDEFINED = &""
 ##
 static func create(options: Options) -> HanpekiLogger:
 	var logger = HanpekiLogger.new()
-
-	for entry in options.custom_levels:
-		if (!entry.has("level")):
-			assert(false, 'wrong configuration in "custom_levels". "level" field not found')
-			continue;
-		var name = entry.get("name", LEVEL_DEFAULT_NAME)
-		logger.register_level(entry.level, name)
-
-	if (options.level != null && options.level != ""):
-		logger.enable_levels_from(options.level)
-
-	# set levels only when provided (NONE can be provided explicitly)
-	# if no levels are given, the defaults are kept
-	if (options.levels.size() > 0):
-		if (options.level == ""):
-			logger._level = NONE
-		for entry in options.levels:
-			var level = null
-			if (typeof(entry) == TYPE_INT):
-				level = entry
-			elif (typeof(entry) == TYPE_STRING):
-				level = logger.get_level_from_name(entry)
-			if (level == null):
-				assert(false, 'unknown level in "levels"')
-			logger.set_level(level, true)
-
+	logger.set_options(options)
 	return logger
 
 ## Name to display for each level
@@ -93,6 +68,35 @@ var _level: int = CORE | WARN | ERROR | FATAL
 
 ## List of added transports
 var _transports: Array[Transport]
+
+##
+## Apply multiple settings at once from the given [param options] configuration
+##
+func set_options(options: HanpekiLogger.Options) -> void:
+	for entry in options.custom_levels:
+		if (!entry.has("level")):
+			assert(false, 'wrong configuration in "custom_levels". "level" field not found')
+			continue;
+		var name = entry.get("name", LEVEL_DEFAULT_NAME)
+		logger.register_level(entry.level, name)
+
+	if (options.level):
+		enable_levels_from(options.level)
+
+	# set levels only when provided (NONE can be provided explicitly)
+	# if no levels are given, the defaults are kept
+	if (options.levels.size() > 0):
+		if (!options.level):
+			_level = NONE
+		for entry in options.levels:
+			var level = null
+			if (typeof(entry) == TYPE_INT):
+				level = entry
+			elif (typeof(entry) == TYPE_STRING):
+				level = get_level_from_name(entry)
+			if (level == null):
+				assert(false, 'unknown level in "levels"')
+			set_level(level, true)
 
 ##
 ## Retrieves the value of a level from its name (case-insensitive)
