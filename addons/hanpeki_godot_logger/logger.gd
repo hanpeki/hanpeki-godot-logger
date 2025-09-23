@@ -38,8 +38,6 @@ enum {
 
 # This version is used in the build process for the plugin config and the zip filename
 const VERSION = "1.0.0-rc.1"
-## Name to display when an unregistered level is used
-const LEVEL_DEFAULT_NAME = 'Unknown';
 ## Value for undefined namespaces
 const NS_UNDEFINED = &""
 
@@ -77,8 +75,10 @@ func set_options(options: HanpekiLogger.Options) -> void:
 		if (!entry.has("level")):
 			assert(false, 'wrong configuration in "custom_levels". "level" field not found')
 			continue;
-		var name = entry.get("name", LEVEL_DEFAULT_NAME)
-		logger.register_level(entry.level, name)
+		if (!entry.has("name")):
+			assert(false, 'wrong configuration in "custom_levels". "name" field not found')
+			continue;
+		register_level(entry.level, entry.name)
 
 	if (options.level):
 		enable_levels_from(options.level)
@@ -128,7 +128,14 @@ func register_level(level: int, name: String) -> void:
 		"Level must be greater than FATAL (%d), lower than MAX_LEVEL (%d) and a power of two" % [
 			FATAL, MAX_LEVEL
 		])
-	assert(_registered_levels & level == NONE, "Level already exist. It will be overwritten")
+	assert(_registered_levels & level == NONE, "Level already exists. It will be overwritten")
+	var is_unique_name = true
+	var lc_name = name.to_lower()
+	for k in _names:
+		if (_names[k].to_lower() == lc_name):
+			is_unique_name = false
+			break
+	assert(is_unique_name, 'A level with name "%s" already exists. Please provide an unique name')
 	_registered_levels |= level
 	_names[level] = name
 
@@ -233,7 +240,7 @@ func message(level: int, msg: String, ns: StringName = NS_UNDEFINED) -> void:
 	msgData.time = Time.get_unix_time_from_system()
 	msgData.utime = Time.get_ticks_msec()
 	msgData.level = level
-	msgData.level_name = _names.get(level, LEVEL_DEFAULT_NAME)
+	msgData.level_name = _names[level]
 	msgData.msg = msg
 	msgData.ns = ns
 
