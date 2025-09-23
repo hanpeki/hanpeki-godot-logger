@@ -108,6 +108,7 @@ func get_level_from_name(name: StringName) -> Variant:
 ## Retrieves the name of a given [param level]
 ##
 func get_level_name(level: int) -> String:
+	assert(_is_valid_level(level), "Trying to get the name for an invalid level")
 	assert(_registered_levels & level != NONE, "Trying to get the name for a level that is not registered")
 	return _names[level]
 
@@ -119,7 +120,7 @@ func get_level_name(level: int) -> String:
 ##
 func register_level(level: int, name: String) -> void:
 	assert(
-		level > FATAL,
+		_is_valid_level(level),
 		"Level must be greater than FATAL (%d), lower than MAX_LEVEL (%d) and a power of two" % [
 			FATAL, MAX_LEVEL
 		])
@@ -132,7 +133,7 @@ func register_level(level: int, name: String) -> void:
 ## [enum HanpekiLogger.FATAL] to avoid modifying the default levels
 ##
 func deregister_level(level: int) -> void:
-	assert(level > FATAL, "Level must be greater than FATAL (%d)" % FATAL)
+	assert(_is_valid_level(level), "Trying to deregister an invalid level")
 	assert(_registered_levels & level != NONE, "Trying to deregister a level that is not registered")
 	_registered_levels &= ~level
 	_names.erase(level)
@@ -141,6 +142,7 @@ func deregister_level(level: int) -> void:
 ## Sets the given [param level] as [param enabled] or not
 ##
 func set_level(level: int, enabled: bool) -> void:
+	assert(_is_valid_level(level), "Trying to set an invalid level")
 	assert(_registered_levels & level != NONE, "Trying to set an unregistered level")
 	if enabled:
 		_level |= level
@@ -155,6 +157,7 @@ func set_level(level: int, enabled: bool) -> void:
 ## If [member MAX_LEVEL] is given, every level will be disabled.
 ##
 func enable_levels_from(level: int) -> void:
+	assert(_is_valid_level(level), "Trying to enable levels but an invalid value was given")
 	assert(level == NONE || _registered_levels & level != NONE, "Trying to set an unregistered level")
 	_level = ~(level - 1)
 
@@ -215,6 +218,7 @@ func fatal(msg: String, ns: StringName = NS_UNDEFINED) -> void:
 ## Logs a [param msg] in a custom [param level] with an optional [param ns]
 ##
 func message(level: int, msg: String, ns: StringName = NS_UNDEFINED) -> void:
+	assert(_is_valid_level(level), "Trying to send a message using an invalid level")
 	assert(_registered_levels & level != NONE, "Trying to use an unregistered level")
 
 	if (level & _level == NONE): return
@@ -231,6 +235,17 @@ func message(level: int, msg: String, ns: StringName = NS_UNDEFINED) -> void:
 
 	for transport in transports:
 		transport.process(msgData)
+
+##
+## Check if a level is valid
+##
+static func _is_valid_level(level: int, custom: bool = false) -> bool:
+	# must be positive
+	if (level < 0): return false;
+	# must be power of two
+	if (level & (level - 1)) != 0: return false
+	# custom levels must be in a valid range
+	return !custom || (level >= FATAL && level < MAX_LEVEL)
 
 ##
 ## Gets the list of transports to use for a given [param level]
@@ -286,6 +301,7 @@ class Transport:
 	## won't reach the Transport, so this is used mainly to disable levels in the Transport
 	##
 	func set_level(level: int, enabled: bool) -> void:
+		assert(HanpekiLogger._is_valid_level(level), "Trying to set an invalid level")
 		if (enabled):
 			_level |= level
 		else:
@@ -389,6 +405,10 @@ class WithBindedNs:
 	## The [param level] needs to be registered in the binded [HanpekiLogger]
 	##
 	func set_level(level: int, enabled: bool) -> void:
+		assert(
+			HanpekiLogger._is_valid_level(level),
+			'Trying to set an invalid level in the Binded HanpekiLogger with namespace "%s"' % _ns
+		)
 		assert(
 			!_logger._names.has(level),
 			'Trying to set an unregistered level in the Binded HanpekiLogger with namespace "%s"' % _ns
