@@ -33,7 +33,7 @@ enum {
 	## Maximum level just for reference. Every custom defined level must be
 	## lower than this one (and greater than FATAL).
 	## It can be used with [member enable_levels_from] to disable all logs
-	MAX_LEVEL = 1 << 63,
+	MAX_LEVEL = 1 << 62 # (highest positive power of two in Godot: 2^62)
 }
 
 # This version is used in the build process for the plugin config and the zip filename
@@ -240,12 +240,14 @@ func message(level: int, msg: String, ns: StringName = NS_UNDEFINED) -> void:
 ## Check if a level is valid
 ##
 static func _is_valid_level(level: int, custom: bool = false) -> bool:
-	# must be positive
-	if (level < 0): return false;
 	# must be power of two
 	if (level & (level - 1)) != 0: return false
+	return (
 	# custom levels must be in a valid range
-	return !custom || (level >= FATAL && level < MAX_LEVEL)
+		(level > FATAL && level < MAX_LEVEL) if custom
+		# in any case, they should be positive
+		else (level > 0 && level <= MAX_LEVEL)
+	)
 
 ##
 ## Gets the list of transports to use for a given [param level]
