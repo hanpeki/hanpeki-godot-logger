@@ -1,0 +1,28 @@
+name: Run tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          filter: tree:0
+          fetch-depth: 0
+
+      - name: Setup Godot
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.5.0
+          use-dotnet: false
+      - name: Setup GUT
+        run: |
+          "$GODOT" --headless --import
+
+      - name: Run Unit Tests
+        run: scripts/test
