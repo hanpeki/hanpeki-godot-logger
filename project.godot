@@ -11,9 +11,9 @@ config_version=5
 [application]
 
 config/name="Hanpeki Godot Logger"
-config/features=PackedStringArray("4.4", "Forward Plus")
+config/features=PackedStringArray("4.5", "Forward Plus")
 config/icon="res://icon.svg"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/hanpeki_godot_logger/plugin.cfg")
+enabled=PackedStringArray("res://addons/gut/plugin.cfg", "res://addons/hanpeki_godot_logger/plugin.cfg")

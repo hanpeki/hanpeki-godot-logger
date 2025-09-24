@@ -170,7 +170,7 @@ func set_level(level: int, enabled: bool) -> void:
 func enable_levels_from(level: int) -> void:
 	assert(_is_valid_level(level), "Trying to enable levels but an invalid value was given")
 	assert(level == NONE || _registered_levels & level != NONE, "Trying to set an unregistered level")
-	_level = ~(level - 1)
+	_level = ~(level - 1) & _registered_levels
 
 ##
 ## Adds a transport to process the messages. Messages will be provided to
@@ -180,14 +180,14 @@ func add_transport(transport: Transport) -> void:
 	_transports.push_back(transport)
 
 ##
-## Returns a [HanpekiLogger] with the [param ns] namespace binded, where logging the methods
+## Returns a [HanpekiLogger] with the [param ns] namespace bound, where logging the methods
 ## don't need the [code]ns[/code] parameter anymore as they will use the provided [param ns]
 ##
 func bind_ns(ns: StringName) -> WithBoundNs:
-	var binded = WithBoundNs.new()
-	binded._logger = self
-	binded._ns = ns
-	return binded
+	var bound = WithBoundNs.new()
+	bound._logger = self
+	bound._ns = ns
+	return bound
 
 ##
 ## Logs the given [param msg] with level = [enum HanpekiLogger.DEBUG] and an optional [param ns]
@@ -254,7 +254,7 @@ static func _is_valid_level(level: int, custom: bool = false) -> bool:
 	# must be power of two
 	if (level & (level - 1)) != 0: return false
 	return (
-    # custom levels must be in a valid range
+		# custom levels must be in a valid range
 		(level > FATAL && level < MAX_LEVEL) if custom
 		# in any case, they should be positive
 		else (level > 0 && level <= MAX_LEVEL)
@@ -399,32 +399,40 @@ class MsgData:
 	var data: Variant # Array[Variant] | null
 
 ##
-## A logger binded to a parent [HanpekiLogger] and a [code]namespace[/code].
+## A logger bound to a parent [HanpekiLogger] and a [code]namespace[/code].
 ## The transports and registered levels are the same as the parent logger.
-## Only a few methods related to messaging are available, and these don't accept a [code]ns[/code]
-## param. Instead, they always use the binded one.
+## Only a few methods related to messaging are available, and these don't accept a
+## [code]ns[/code] param. Instead, they always use the bound one.
 ## It can have its own [code]level[/code] for granular setting per namespace.
 ##
 class WithBoundNs:
-	## Binded namespace
+	## Bound namespace
 	var _ns: StringName
-	## Binded logger
+	## Bound logger
 	var _logger: HanpekiLogger
 	## Local level to this instance
 	var _level: int = INHERIT
 
 	##
-	## Sets the given [param level] as [param enabled] or not
-	## The [param level] needs to be registered in the binded [HanpekiLogger]
+	## Enables or disables the given [param level] for this bound instance.
+	## The [param level] must be registered in the parent [HanpekiLogger].
+	##
+	## Important: A level must be enabled both in this bound instance *and*
+	## in the parent logger to take effect. Message flow works as follows:
+	##
+	## 1. `bound.message(level, msg)` is called.
+	## 2. If the bound instance has [param level] disabled → the message is dropped.
+	## 3. If the parent logger has [param level] disabled → the message is dropped.
+	## 4. Only if both are enabled → the message is delivered to the parent’s transports.
 	##
 	func set_level(level: int, enabled: bool) -> void:
 		assert(
 			HanpekiLogger._is_valid_level(level),
-			'Trying to set an invalid level in the Binded HanpekiLogger with namespace "%s"' % _ns
+			'Trying to set an invalid level in the Bound HanpekiLogger with namespace "%s"' % _ns
 		)
 		assert(
-			!_logger._names.has(level),
-			'Trying to set an unregistered level in the Binded HanpekiLogger with namespace "%s"' % _ns
+			_logger._names.has(level),
+			'Trying to set an unregistered level in the Bound HanpekiLogger with namespace "%s"' % _ns
 		)
 		if enabled:
 			_level |= level
@@ -432,58 +440,58 @@ class WithBoundNs:
 			_level &= ~level
 
 	##
-	## Logs the given [param msg] with level = [enum HanpekiLogger.DEBUG] using the binded namespace
+	## Logs the given [param msg] with level = [enum HanpekiLogger.DEBUG] using the bound namespace
 	##
 	func debug(msg: String) -> void:
 		if (!_isActive(DEBUG)): return
 		_logger.message(DEBUG, msg, _ns)
 
 	##
-	## Logs the given [param msg] with level = [enum HanpekiLogger.INFO] using the binded namespace
+	## Logs the given [param msg] with level = [enum HanpekiLogger.INFO] using the bound namespace
 	##
 	func info(msg: String) -> void:
 		if (!_isActive(INFO)): return
 		_logger.message(INFO, msg, _ns)
 
 	##
-	## Logs the given [param msg] with level = [enum HanpekiLogger.CORE] using the binded namespace
+	## Logs the given [param msg] with level = [enum HanpekiLogger.CORE] using the bound namespace
 	##
 	func core(msg: String) -> void:
 		if (!_isActive(CORE)): return
 		_logger.message(CORE, msg, _ns)
 
 	##
-	## Logs the given [param msg] with level = [enum HanpekiLogger.WARN] using the binded namespace
+	## Logs the given [param msg] with level = [enum HanpekiLogger.WARN] using the bound namespace
 	##
 	func warn(msg: String) -> void:
 		if (!_isActive(WARN)): return
 		_logger.message(WARN, msg, _ns)
 
 	##
-	## Logs the given [param msg] with level = [enum HanpekiLogger.ERROR] using the binded namespace
+	## Logs the given [param msg] with level = [enum HanpekiLogger.ERROR] using the bound namespace
 	##
 	func error(msg: String) -> void:
 		if (!_isActive(ERROR)): return
 		_logger.message(ERROR, msg, _ns)
 
 	##
-	## Logs the given [param msg] with level = [enum HanpekiLogger.FATAL] using the binded namespace
+	## Logs the given [param msg] with level = [enum HanpekiLogger.FATAL] using the bound namespace
 	##
 	func fatal(msg: String) -> void:
 		if (!_isActive(FATAL)): return
 		_logger.message(FATAL, msg, _ns)
 
 	##
-	## Logs a [param msg] in a custom [param level] with the binded namespace
+	## Logs a [param msg] in a custom [param level] with the bound namespace
 	##
 	func message(level: int, msg: String) -> void:
 		if (!_isActive(level)): return
 		_logger.message(level, msg, _ns)
 
 	##
-	## Check if this binded instance is active for the given [param level].
+	## Check if this bound instance is active for the given [param level].
 	## Having the level set to [enum HanpekiLogger.INHERIT] will always return [code]true[/code]
-	## for it to be checked in the binded logger.
+	## for it to be checked in the bound logger.
 	##
 	func _isActive(level: int) -> bool:
 		if (_level == HanpekiLogger.INHERIT): return true
