@@ -1,0 +1,10 @@
+#
+# Configuration shared across multiple scripts
+#
+
+# Path to 7zip executable
+export SEVEN_ZIP="/c/Program Files/7-Zip/7z.exe"
+# Path to this plugin src folder
+export PLUGIN_FOLDER="${PROJECT_ROOT}/addons/hanpeki_godot_logger"
+# Output where the zip will be generated
+export OUTPUT_FOLDER="${PROJECT_ROOT}/out"

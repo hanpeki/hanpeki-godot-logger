@@ -1,0 +1,110 @@
+###
+#
+# Script to be imported by every other executable script with
+#   source "$(dirname "$0")/shared"
+#
+# This defines basic variables, shared functions and loads the configuration
+#
+###
+
+# Fail on error
+set -e
+
+
+#
+# Constant definitions
+#
+
+# Base Colors
+COLOR_RESET="\033[0;0m"
+COLOR_BLACK="\033[0;30m"
+COLOR_RED="\033[0;31m"
+COLOR_GREEN="\033[0;32m"
+COLOR_ORANGE="\033[0;33m"
+COLOR_BLUE="\033[0;34m"
+COLOR_PURPLE="\033[0;35m"
+COLOR_CYAN="\033[0;36m"
+COLOR_LIGHT_GRAY="\033[0;37m"
+COLOR_DARK_GRAY="\033[1;30m"
+COLOR_LIGHT_RED="\033[1;31m"
+COLOR_LIGHT_GREEN="\033[1;32m"
+COLOR_YELLOW="\033[1;33m"
+COLOR_LIGHT_BLUE="\033[1;34m"
+COLOR_LIGHT_PURPLE="\033[1;35m"
+COLOR_LIGHT_CYAN="\033[1;36m"
+COLOR_WHITE="\033[1;37m"
+
+# Semantic colors
+COLOR_ERROR=${COLOR_RED}
+COLOR_INFO=${COLOR_LIGHT_BLUE}
+COLOR_NAME=${COLOR_GREEN}
+COLOR_VERSION=${COLOR_GREEN}
+COLOR_FILE=${COLOR_YELLOW}
+COLOR_LIST=${COLOR_DARK_GRAY}
+
+# Project root (in case scripts run from a different path)
+PROJECT_ROOT="$(realpath --relative-to "$(pwd)" "$(dirname "$0")/..")"
+
+
+# Load configuration
+source "$(dirname "$0")/config"
+
+
+#
+# Extended config (from other values)
+#
+
+
+# Main source file. Version is read from this file
+VERSION_GD_FILE="${PLUGIN_FOLDER}/logger.gd"
+# Version is injected in this file
+PLUGIN_CONFIG_FILE="${PLUGIN_FOLDER}/plugin.cfg"
+# Name of the plugin as set in the config file
+PLUGIN_NAME=$(grep -E '^name=' "${PLUGIN_CONFIG_FILE}" | sed -E 's/name="([^"]+)"/\1/')
+# Version of the plugin as set in VERSION_GD_FILE
+PLUGIN_VERSION=$(grep -E '^const VERSION\s*=\s*"' "${VERSION_GD_FILE}" | sed -E "s/.*['\"]([^'\"]+)['\"].*/\\1/")
+
+
+#
+# Utilities
+#
+
+# Outputs an information message to stdout
+info() {
+  local msg="$@"
+  echo -e "${COLOR_INFO}INFO: ${COLOR_RESET}${msg}"
+}
+
+
+# Exits failing the script with error code 1 (generic error)
+# and outputting the error message to stderr
+fail() {
+  local msg="$@"
+  echo -e "${COLOR_ERROR}ERROR: ${COLOR_RESET}${msg}"
+  exit 1
+}
+
+
+# Environment variable $GODOT is required to be set to the exe used to
+# run godot. i.e. /x/path/to/Godot_v4.4-stable_win64.exe
+# Fail if not set
+require_godot() {
+  if [[ -z "${GODOT}" ]]; then
+    fail "\$GODOT must be set to the Godot executable to use"
+  fi
+
+  # And $GODOT must point to a valid executable
+  if [[ ! -x "${GODOT}" ]]; then
+    fail "\$GODOT doesn't exist or is not executable (${GODOT})"
+  fi
+
+  local version=`"${GODOT}" --version`
+  info "Godot ${COLOR_VERSION}${version}${COLOR_RESET} detected at ${COLOR_FILE}${GODOT}${COLOR_RESET}"
+}
+
+# Check that gdlint is installed or fail if not available
+require_gdlint() {
+  if ! command -v "gdlint" >/dev/null 2>&1; then
+    fail "gdlint can't be found" >&2
+  fi
+}
