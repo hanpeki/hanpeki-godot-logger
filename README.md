@@ -2,6 +2,8 @@
 
 > A customizable logging system for Godot with transports and namespaces.
 
+[![Tests](https://github.com/hanpeki/hanpeki-godot-logger/actions/workflows/tests.yml/badge.svg)](https://github.com/hanpeki/hanpeki-godot-logger/actions/workflows/tests.yml) [![Linting](https://github.com/hanpeki/hanpeki-godot-logger/actions/workflows/linting.yml/badge.svg)](https://github.com/hanpeki/hanpeki-godot-logger/actions/workflows/linting.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 ## Features
 
 - ☑ Configurable logging system

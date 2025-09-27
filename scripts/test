@@ -1,17 +1,14 @@
 #!/usr/bin/env bash
 
-# Environment variable $GODOT is required to be set to the exe used to
-# run godot. i.e. /x/path/to/Godot_v4.4-stable_win64.exe
-if [[ -z "${GODOT}" ]]; then
-  >&2 echo "Error: \$GODOT must be set to the Godot executable to use"
-  exit 1
-fi
+###
+#
+# Runs the Unit Tests for the plugin
+#
+###
 
-# And $GODOT must point to a valid executable
-if [[ ! -x "${GODOT}" ]]; then
-  >&2 echo "Error: \$GODOT doesn't exist or is not executable (${GODOT})"
-  exit 1
-fi
+source "$(dirname "$0")/shared"
+
+require_godot
 
 PWD=`pwd`
 DIRNAME=`dirname "${BASH_SOURCE[0]}"`

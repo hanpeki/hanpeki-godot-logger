@@ -6,41 +6,13 @@
 #
 ###
 
-# Configuration
-SEVEN_ZIP="/c/Program Files/7-Zip/7z.exe"
-PLUGIN_FOLDER="./addons/hanpeki_godot_logger"
-PLUGIN_CONFIG_FILE="${PLUGIN_FOLDER}/plugin.cfg"
-VERSION_GD_FILE="${PLUGIN_FOLDER}/logger.gd"
-OUTPUT_FOLDER="./out"
+source "$(dirname "$0")/shared"
 
-# Constants
-COLOR_RESET="\033[0;0m"
-COLOR_BLACK="\033[0;30m"
-COLOR_RED="\033[0;31m"
-COLOR_GREEN="\033[0;32m"
-COLOR_ORANGE="\033[0;33m"
-COLOR_BLUE="\033[0;34m"
-COLOR_PURPLE="\033[0;35m"
-COLOR_CYAN="\033[0;36m"
-COLOR_LIGHT_GRAY="\033[0;37m"
-COLOR_DARK_GRAY="\033[1;30m"
-COLOR_LIGHT_RED="\033[1;31m"
-COLOR_LIGHT_GREEN="\033[1;32m"
-COLOR_YELLOW="\033[1;33m"
-COLOR_LIGHT_BLUE="\033[1;34m"
-COLOR_LIGHT_PURPLE="\033[1;35m"
-COLOR_LIGHT_CYAN="\033[1;36m"
-COLOR_WHITE="\033[1;37m"
-
-COLOR_NAME=${COLOR_GREEN}
-COLOR_VERSION=${COLOR_GREEN}
-COLOR_FILE=${COLOR_YELLOW}
-COLOR_LIST=${COLOR_DARK_GRAY}
 
 # Define a cleanup function to run at the end, no matter what
 cleanup() {
-  if [ -f "$TMP_FILE" ]; then
-    rm "$TMP_FILE"
+  if [ -f "$temp_file" ]; then
+    rm "$temp_file"
   fi
 }
 
@@ -48,23 +20,21 @@ cleanup() {
 trap cleanup EXIT
 
 # Create a temporal file
-TMP_FILE=$(mktemp)
+temp_file=$(mktemp)
 
 # Calculate variables to use
-plugin_name=$(grep -E '^name=' "${PLUGIN_CONFIG_FILE}" | sed -E 's/name="([^"]+)"/\1/')
-plugin_version=$(grep -E '^const VERSION\s*=\s*"' "${VERSION_GD_FILE}" | sed -E "s/.*['\"]([^'\"]+)['\"].*/\\1/")
-zip_file="${OUTPUT_FOLDER}/$(basename "${PLUGIN_FOLDER}")-${plugin_version}.zip"
+zip_file="${OUTPUT_FOLDER}/$(basename "${PLUGIN_FOLDER}")-${PLUGIN_VERSION}.zip"
 # Initial dot needs to be removed for paths to be preserved
-find "${PLUGIN_FOLDER}" -type f ! -name "*.uid" | sed 's|^\./||' > "${TMP_FILE}"
+find "${PLUGIN_FOLDER}" -type f ! -name "*.uid" | sed 's|^\./||' > "${temp_file}"
 
 # Inject the version from the class into the plugin config
-sed -i.bak -E "s/^(version\s*=\s*['\"])[^'\"]+/\\1${plugin_version}/" "${PLUGIN_CONFIG_FILE}"
+sed -i.bak -E "s/^(version\s*=\s*['\"])[^'\"]+/\\1${PLUGIN_VERSION}/" "${PLUGIN_CONFIG_FILE}"
 
 # Output feedback
-echo -e "Creating a .zip file for ${COLOR_NAME}${plugin_name} ${COLOR_VERSION}v${plugin_version}${COLOR_RESET} > ${COLOR_FILE}${zip_file}${COLOR_RESET}"
+echo -e "Creating a .zip file for ${COLOR_NAME}${PLUGIN_NAME} ${COLOR_VERSION}v${PLUGIN_VERSION}${COLOR_RESET} > ${COLOR_FILE}${zip_file}${COLOR_RESET}"
 while IFS= read -r file; do
   echo -e "${COLOR_LIST} - ${file}${COLOR_RESET}"
-done < "${TMP_FILE}"
+done < "${temp_file}"
 echo
 
 # If the output file existed, remove it
@@ -73,7 +43,7 @@ if [ -f "$zip_file" ]; then
 fi
 
 # Create the zip file
-"$SEVEN_ZIP" a "$zip_file" @"${TMP_FILE}" | grep -E "(Add new data)|(Everything is Ok)"
+"$SEVEN_ZIP" a "$zip_file" @"${temp_file}" | grep -E "(Add new data)|(Everything is Ok)"
 
-# Revert the changes done in the plugin config
+# Revert the changes done in the plugin config (in case of running it in local)
 mv "${PLUGIN_CONFIG_FILE}".bak "${PLUGIN_CONFIG_FILE}"
