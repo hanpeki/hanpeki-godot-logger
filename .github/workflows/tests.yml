@@ -1,4 +1,4 @@
-name: Run checks
+name: Tests
 
 on:
   push:
@@ -30,21 +30,3 @@ jobs:
 
       - name: Run Unit Tests
         run: scripts/test
-
-  linting:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-        with:
-          filter: tree:0
-          fetch-depth: 0
-
-      - name: Set up Godot toolkit
-        uses: Scony/godot-gdscript-toolkit@master
-        with:
-          version: 4.*
-
-      - name: Run linting
-        run: scripts/lint
