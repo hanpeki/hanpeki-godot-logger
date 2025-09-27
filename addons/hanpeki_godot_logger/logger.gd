@@ -33,21 +33,13 @@ enum {
 	## Maximum level just for reference. Every custom defined level must be
 	## lower than this one (and greater than FATAL).
 	## It can be used with [member enable_levels_from] to disable all logs
-	MAX_LEVEL = 1 << 62 # (highest positive power of two in Godot: 2^62)
+	MAX_LEVEL = 1 << 62  # (highest positive power of two in Godot: 2^62)
 }
 
 # This version is used in the build process for the plugin config and the zip filename
 const VERSION = "1.0.0-rc.1"
 ## Value for undefined namespaces
 const NS_UNDEFINED = &""
-
-##
-## Constructor with [param options]
-##
-static func create(options: Options) -> HanpekiLogger:
-	var logger = HanpekiLogger.new()
-	logger.set_options(options)
-	return logger
 
 ## Name to display for each level
 var _names: Dictionary[int, String] = {
@@ -67,36 +59,47 @@ var _level: int = CORE | WARN | ERROR | FATAL
 ## List of added transports
 var _transports: Array[Transport]
 
+
+##
+## Constructor with [param options]
+##
+static func create(options: Options) -> HanpekiLogger:
+	var logger = HanpekiLogger.new()
+	logger.set_options(options)
+	return logger
+
+
 ##
 ## Apply multiple settings at once from the given [param options] configuration
 ##
 func set_options(options: HanpekiLogger.Options) -> void:
 	for entry in options.custom_levels:
-		if (!entry.has("level")):
+		if !entry.has("level"):
 			assert(false, 'wrong configuration in "custom_levels". "level" field not found')
-			continue;
-		if (!entry.has("name")):
+			continue
+		if !entry.has("name"):
 			assert(false, 'wrong configuration in "custom_levels". "name" field not found')
-			continue;
+			continue
 		register_level(entry.level, entry.name)
 
-	if (options.level):
+	if options.level:
 		enable_levels_from(options.level)
 
 	# set levels only when provided (NONE can be provided explicitly)
 	# if no levels are given, the defaults are kept
-	if (options.levels.size() > 0):
-		if (!options.level):
+	if options.levels.size() > 0:
+		if !options.level:
 			_level = NONE
 		for entry in options.levels:
 			var level = null
-			if (typeof(entry) == TYPE_INT):
+			if typeof(entry) == TYPE_INT:
 				level = entry
-			elif (typeof(entry) == TYPE_STRING):
+			elif typeof(entry) == TYPE_STRING:
 				level = get_level_from_name(entry)
-			if (level == null):
+			if level == null:
 				assert(false, 'unknown level in "levels"')
 			set_level(level, true)
+
 
 ##
 ## Retrieves the value of a level from its name (case-insensitive)
@@ -104,17 +107,22 @@ func set_options(options: HanpekiLogger.Options) -> void:
 func get_level_from_name(name: StringName) -> Variant:
 	var lc = name.to_lower()
 	for level in _names:
-		if (_names[level].to_lower() == lc):
+		if _names[level].to_lower() == lc:
 			return level
 	return null
+
 
 ##
 ## Retrieves the name of a given [param level]
 ##
 func get_level_name(level: int) -> String:
 	assert(_is_valid_level(level), "Trying to get the name for an invalid level")
-	assert(_registered_levels & level != NONE, "Trying to get the name for a level that is not registered")
+	assert(
+		_registered_levels & level != NONE,
+		"Trying to get the name for a level that is not registered"
+	)
 	return _names[level]
+
 
 ##
 ## Registers a custom [param level]. It needs to be greater than
@@ -125,19 +133,22 @@ func get_level_name(level: int) -> String:
 func register_level(level: int, name: String) -> void:
 	assert(
 		_is_valid_level(level),
-		"Level must be greater than FATAL (%d), lower than MAX_LEVEL (%d) and a power of two" % [
-			FATAL, MAX_LEVEL
-		])
+		(
+			"Level must be greater than FATAL (%d), lower than MAX_LEVEL (%d) and a power of two"
+			% [FATAL, MAX_LEVEL]
+		)
+	)
 	assert(_registered_levels & level == NONE, "Level already exists. It will be overwritten")
 	var is_unique_name = true
 	var lc_name = name.to_lower()
 	for k in _names:
-		if (_names[k].to_lower() == lc_name):
+		if _names[k].to_lower() == lc_name:
 			is_unique_name = false
 			break
 	assert(is_unique_name, 'A level with name "%s" already exists. Please provide an unique name')
 	_registered_levels |= level
 	_names[level] = name
+
 
 ##
 ## Deregisters the given [param level]. It needs to be greater than
@@ -145,9 +156,12 @@ func register_level(level: int, name: String) -> void:
 ##
 func deregister_level(level: int) -> void:
 	assert(_is_valid_level(level), "Trying to deregister an invalid level")
-	assert(_registered_levels & level != NONE, "Trying to deregister a level that is not registered")
+	assert(
+		_registered_levels & level != NONE, "Trying to deregister a level that is not registered"
+	)
 	_registered_levels &= ~level
 	_names.erase(level)
+
 
 ##
 ## Sets the given [param level] as [param enabled] or not
@@ -160,6 +174,7 @@ func set_level(level: int, enabled: bool) -> void:
 	else:
 		_level &= ~level
 
+
 ##
 ## Enable all levels higher or equal than the given [param level].
 ## Useful if all the defined levels are sorted from the least important (1) to the most
@@ -169,8 +184,11 @@ func set_level(level: int, enabled: bool) -> void:
 ##
 func enable_levels_from(level: int) -> void:
 	assert(_is_valid_level(level), "Trying to enable levels but an invalid value was given")
-	assert(level == NONE || _registered_levels & level != NONE, "Trying to set an unregistered level")
+	assert(
+		level == NONE || _registered_levels & level != NONE, "Trying to set an unregistered level"
+	)
 	_level = ~(level - 1) & _registered_levels
+
 
 ##
 ## Adds a transport to process the messages. Messages will be provided to
@@ -178,6 +196,7 @@ func enable_levels_from(level: int) -> void:
 ##
 func add_transport(transport: Transport) -> void:
 	_transports.push_back(transport)
+
 
 ##
 ## Returns a [HanpekiLogger] with the [param ns] namespace bound, where logging the methods
@@ -189,11 +208,13 @@ func bind_ns(ns: StringName) -> WithBoundNs:
 	bound._ns = ns
 	return bound
 
+
 ##
 ## Logs the given [param msg] with level = [enum HanpekiLogger.DEBUG] and an optional [param ns]
 ##
 func debug(msg: String, ns: StringName = NS_UNDEFINED) -> void:
 	message(DEBUG, msg, ns)
+
 
 ##
 ## Logs the given [param msg] with level = [enum HanpekiLogger.INFO] and an optional [param ns]
@@ -201,11 +222,13 @@ func debug(msg: String, ns: StringName = NS_UNDEFINED) -> void:
 func info(msg: String, ns: StringName = NS_UNDEFINED) -> void:
 	message(INFO, msg, ns)
 
+
 ##
 ## Logs the given [param msg] with level = [enum HanpekiLogger.CORE] and an optional [param ns]
 ##
 func core(msg: String, ns: StringName = NS_UNDEFINED) -> void:
 	message(CORE, msg, ns)
+
 
 ##
 ## Logs the given [param msg] with level = [enum HanpekiLogger.WARN] and an optional [param ns]
@@ -213,17 +236,20 @@ func core(msg: String, ns: StringName = NS_UNDEFINED) -> void:
 func warn(msg: String, ns: StringName = NS_UNDEFINED) -> void:
 	message(WARN, msg, ns)
 
+
 ##
 ## Logs the given [param msg] with level = [enum HanpekiLogger.ERROR] and an optional [param ns]
 ##
 func error(msg: String, ns: StringName = NS_UNDEFINED) -> void:
 	message(ERROR, msg, ns)
 
+
 ##
 ## Logs the given [param msg] with level = [enum HanpekiLogger.FATAL] and an optional [param ns]
 ##
 func fatal(msg: String, ns: StringName = NS_UNDEFINED) -> void:
 	message(FATAL, msg, ns)
+
 
 ##
 ## Logs a [param msg] in a custom [param level] with an optional [param ns]
@@ -232,33 +258,37 @@ func message(level: int, msg: String, ns: StringName = NS_UNDEFINED) -> void:
 	assert(_is_valid_level(level), "Trying to send a message using an invalid level")
 	assert(_registered_levels & level != NONE, "Trying to use an unregistered level")
 
-	if (level & _level == NONE): return
+	if level & _level == NONE:
+		return
 	var transports = _get_active_transports(level)
-	if (transports.size() == NONE): return
+	if transports.size() == NONE:
+		return
 
-	var msgData = MsgData.new()
-	msgData.time = Time.get_unix_time_from_system()
-	msgData.utime = Time.get_ticks_msec()
-	msgData.level = level
-	msgData.level_name = _names[level]
-	msgData.msg = msg
-	msgData.ns = ns
+	var msg_data = MsgData.new()
+	msg_data.time = Time.get_unix_time_from_system()
+	msg_data.utime = Time.get_ticks_msec()
+	msg_data.level = level
+	msg_data.level_name = _names[level]
+	msg_data.msg = msg
+	msg_data.ns = ns
 
 	for transport in transports:
-		transport.process(msgData)
+		transport.process(msg_data)
+
 
 ##
 ## Check if a level is valid
 ##
 static func _is_valid_level(level: int, custom: bool = false) -> bool:
 	# must be power of two
-	if (level & (level - 1)) != 0: return false
-	return (
+	if (level & (level - 1)) != 0:
+		return false
+	if custom:
 		# custom levels must be in a valid range
-		(level > FATAL && level < MAX_LEVEL) if custom
+		return level > FATAL && level < MAX_LEVEL
 		# in any case, they should be positive
-		else (level > 0 && level <= MAX_LEVEL)
-	)
+	return level > 0 && level <= MAX_LEVEL
+
 
 ##
 ## Gets the list of transports to use for a given [param level]
@@ -267,8 +297,8 @@ static func _is_valid_level(level: int, custom: bool = false) -> bool:
 func _get_active_transports(level: int) -> Array[Transport]:
 	var res: Array[Transport]
 	for transport in _transports:
-		var transportLevel = _level if transport._level == INHERIT else transport._level
-		if (transportLevel & level != NONE):
+		var transport_level = _level if transport._level == INHERIT else transport._level
+		if transport_level & level != NONE:
 			res.append(transport)
 	return res
 
@@ -294,6 +324,20 @@ class Options:
 ## A Transport is an abstract class that processes messages to log in their own way
 ##
 class Transport:
+	## Available ways to format the time via [member _get_time_str]
+	enum TimeFormat {
+		## Formats the time as the local system
+		SYSTEM_TIME,
+		## Formats the date and the time as the local system time
+		SYSTEM_DATE_TIME,
+		## Formats the time as the UTC time
+		UTC_TIME,
+		## Formats the time as the UTC date and time
+		UTC_DATE_TIME,
+		## Formats the time as the ellapsed time since the game started
+		RELATIVE,
+	}
+
 	## Level to use by the transport, by default the same as the logger where it's registered
 	var _level: int = HanpekiLogger.INHERIT
 	## How to format the time with [member _get_time_str]
@@ -306,7 +350,11 @@ class Transport:
 	##
 	func set_options(options: Options) -> void:
 		_level = HanpekiLogger.INHERIT if options == null else options.level
-		_time_format = HanpekiLogger.Transport.TimeFormat.SYSTEM_TIME if options == null else options.time_format
+		_time_format = (
+			HanpekiLogger.Transport.TimeFormat.SYSTEM_TIME
+			if options == null
+			else options.time_format
+		)
 
 	##
 	## Level to use by this Transport independently from the one set in the logger.
@@ -315,7 +363,7 @@ class Transport:
 	##
 	func set_level(level: int, enabled: bool) -> void:
 		assert(HanpekiLogger._is_valid_level(level), "Trying to set an invalid level")
-		if (enabled):
+		if enabled:
 			_level |= level
 		else:
 			_level &= ~level
@@ -337,47 +385,35 @@ class Transport:
 
 	## Get the time to log for the given [param data]
 	func _get_time_str(data: MsgData) -> String:
-		if (_time_format == TimeFormat.RELATIVE):
+		if _time_format == TimeFormat.RELATIVE:
 			@warning_ignore("integer_division")
 			var time = Time.get_time_dict_from_unix_time(data.utime / 1000)
 			var ms = data.utime % 1000
 			return "%02d:%02d:%02d.%03d" % [time.hour, time.minute, time.second, ms]
-		else:
-			var unix = (data.time
-				if (_time_format == TimeFormat.UTC_TIME || _time_format == TimeFormat.UTC_DATE_TIME)
-				else data.time + _time_bias)
-			var ms = data.utime % 1000
 
-			if (_time_format == TimeFormat.UTC_TIME || _time_format == TimeFormat.SYSTEM_TIME):
-				var time = Time.get_time_dict_from_unix_time(unix)
-				return "%02d:%02d:%02d.%03d" % [time.hour, time.minute, time.second, ms]
-			else:
-				var time = Time.get_datetime_dict_from_unix_time(unix)
-				return "%04d-%02d-%02d %02d:%02d:%02d.%03d" % [
-					time.year, time.month, time.day,
-					time.hour, time.minute, time.second,
-					ms
-				]
+		var unix = (
+			data.time
+			if (_time_format == TimeFormat.UTC_TIME || _time_format == TimeFormat.UTC_DATE_TIME)
+			else data.time + _time_bias
+		)
+		var ms = data.utime % 1000
 
-	## Available ways to format the time via [member _get_time_str]
-	enum TimeFormat {
-		## Formats the time as the local system
-		SYSTEM_TIME,
-		## Formats the date and the time as the local system time
-		SYSTEM_DATE_TIME,
-		## Formats the time as the UTC time
-		UTC_TIME,
-		## Formats the time as the UTC date and time
-		UTC_DATE_TIME,
-		## Formats the time as the ellapsed time since the game started
-		RELATIVE,
-	}
+		if _time_format == TimeFormat.UTC_TIME || _time_format == TimeFormat.SYSTEM_TIME:
+			var time = Time.get_time_dict_from_unix_time(unix)
+			return "%02d:%02d:%02d.%03d" % [time.hour, time.minute, time.second, ms]
+
+		var time = Time.get_datetime_dict_from_unix_time(unix)
+		return (
+			"%04d-%02d-%02d %02d:%02d:%02d.%03d"
+			% [time.year, time.month, time.day, time.hour, time.minute, time.second, ms]
+		)
 
 	class Options:
 		## Level to use by the transport. Defaults to use the one from the logger is attached to
 		var level: int = INHERIT
 		## How to format time in [member _get_time_str]
 		var time_format: TimeFormat = TimeFormat.SYSTEM_TIME
+
 
 ##
 ## Object storing the data to pass when calling [member Transport.process]
@@ -396,7 +432,8 @@ class MsgData:
 	## message text
 	var msg: String
 	## metadata that can be added when logging
-	var data: Variant # Array[Variant] | null
+	var data: Variant  # Array[Variant] | null
+
 
 ##
 ## A logger bound to a parent [HanpekiLogger] and a [code]namespace[/code].
@@ -432,7 +469,10 @@ class WithBoundNs:
 		)
 		assert(
 			_logger._names.has(level),
-			'Trying to set an unregistered level in the Bound HanpekiLogger with namespace "%s"' % _ns
+			(
+				'Trying to set an unregistered level in the Bound HanpekiLogger with namespace "%s"'
+				% _ns
+			)
 		)
 		if enabled:
 			_level |= level
@@ -443,49 +483,56 @@ class WithBoundNs:
 	## Logs the given [param msg] with level = [enum HanpekiLogger.DEBUG] using the bound namespace
 	##
 	func debug(msg: String) -> void:
-		if (!_isActive(DEBUG)): return
+		if !_is_active(DEBUG):
+			return
 		_logger.message(DEBUG, msg, _ns)
 
 	##
 	## Logs the given [param msg] with level = [enum HanpekiLogger.INFO] using the bound namespace
 	##
 	func info(msg: String) -> void:
-		if (!_isActive(INFO)): return
+		if !_is_active(INFO):
+			return
 		_logger.message(INFO, msg, _ns)
 
 	##
 	## Logs the given [param msg] with level = [enum HanpekiLogger.CORE] using the bound namespace
 	##
 	func core(msg: String) -> void:
-		if (!_isActive(CORE)): return
+		if !_is_active(CORE):
+			return
 		_logger.message(CORE, msg, _ns)
 
 	##
 	## Logs the given [param msg] with level = [enum HanpekiLogger.WARN] using the bound namespace
 	##
 	func warn(msg: String) -> void:
-		if (!_isActive(WARN)): return
+		if !_is_active(WARN):
+			return
 		_logger.message(WARN, msg, _ns)
 
 	##
 	## Logs the given [param msg] with level = [enum HanpekiLogger.ERROR] using the bound namespace
 	##
 	func error(msg: String) -> void:
-		if (!_isActive(ERROR)): return
+		if !_is_active(ERROR):
+			return
 		_logger.message(ERROR, msg, _ns)
 
 	##
 	## Logs the given [param msg] with level = [enum HanpekiLogger.FATAL] using the bound namespace
 	##
 	func fatal(msg: String) -> void:
-		if (!_isActive(FATAL)): return
+		if !_is_active(FATAL):
+			return
 		_logger.message(FATAL, msg, _ns)
 
 	##
 	## Logs a [param msg] in a custom [param level] with the bound namespace
 	##
 	func message(level: int, msg: String) -> void:
-		if (!_isActive(level)): return
+		if !_is_active(level):
+			return
 		_logger.message(level, msg, _ns)
 
 	##
@@ -493,6 +540,7 @@ class WithBoundNs:
 	## Having the level set to [enum HanpekiLogger.INHERIT] will always return [code]true[/code]
 	## for it to be checked in the bound logger.
 	##
-	func _isActive(level: int) -> bool:
-		if (_level == HanpekiLogger.INHERIT): return true
+	func _is_active(level: int) -> bool:
+		if _level == HanpekiLogger.INHERIT:
+			return true
 		return _level & level != NONE
