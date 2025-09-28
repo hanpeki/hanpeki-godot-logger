@@ -13,6 +13,15 @@ var _processed: Dictionary[int, Variant] = {}
 
 
 ##
+## Constructor with [param options]
+##
+static func create(options: Options = null) -> HanpekiLoggerTestTransport:
+	var instance = HanpekiLoggerTestTransport.new()
+	instance.set_options(options)
+	return instance
+
+
+##
 ## [method process] is needed when implementing a [HanpekiLogger.Transport]
 ##
 func process(data: HanpekiLogger.MsgData) -> void:
@@ -49,3 +58,17 @@ func get_processed_message(msg: String, level: int = HanpekiLogger.NONE) -> Hanp
 ##
 func has_processed_message(msg: String, level: int = HanpekiLogger.NONE) -> bool:
 	return get_processed_message(msg, level) != null
+
+
+##
+## Reset the list of processed messages. If a [param level] is given,
+## only the list of processed messages for that level will be reset.
+##
+func reset_processed(level: int = HanpekiLogger.NONE) -> void:
+	if level == HanpekiLogger.NONE:
+		_all_processed.clear()
+		_processed.clear()
+		return
+	if _processed.has(level):
+		_processed[level].clear()
+	_all_processed = _all_processed.filter(func(data) -> bool: return data.level != level)

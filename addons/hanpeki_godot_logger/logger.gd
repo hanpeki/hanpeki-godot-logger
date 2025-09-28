@@ -36,7 +36,31 @@ enum {
 	MAX_LEVEL = 1 << 62  # (highest positive power of two in Godot: 2^62)
 }
 
-# This version is used in the build process for the plugin config and the zip filename
+##
+## Evaluates to [enum StackLevelMode] depending on the environment
+##
+enum StackLevelConfig {
+	## Always evaluates to [enum StackLevelMode.NONE]
+	NONE,
+	## Always evaluates to [enum StackLevelMode.ORIGIN]
+	ORIGIN,
+	## Always evaluates to [enum StackLevelMode.FULL]
+	FULL,
+	## Evaluates to [enum StackLevelMode.ORIGIN] if [method OS.is_debug_build]
+	## and [enum StackLevelMode.NONE] otherwise
+	ORIGIN_IF_DEBUG,
+	## Evaluates to [enum StackLevelMode.FULL] if [method OS.is_debug_build]
+	## and [enum StackLevelMode.NONE] otherwise
+	FULL_IF_DEBUG,
+	## Evaluates to [enum StackLevelMode.ORIGIN] if not [method OS.is_debug_build]
+	## and [enum StackLevelMode.NONE] otherwise
+	ORIGIN_IF_PROD,
+	## Evaluates to [enum StackLevelMode.FULL] if not [method OS.is_debug_build]
+	## and [enum StackLevelMode.NONE] otherwise
+	FULL_IF_PROD,
+}
+
+## This version is used in the build process for the plugin config and the zip filename
 const VERSION = "1.0.0-rc.1"
 ## Value for undefined namespaces
 const NS_UNDEFINED = &""
@@ -55,6 +79,10 @@ var _names: Dictionary[int, String] = {
 var _registered_levels: int = DEBUG | INFO | CORE | WARN | ERROR | FATAL
 ## Levels to log, defaults to IMPORTANT, WARN, ERROR and FATAL
 var _level: int = CORE | WARN | ERROR | FATAL
+## Whether to provide the stack of the log call in the data passed to the transports
+## Can be a bool or a [code]Dictionary[int, bool][/code].
+## Autodetected when adding or removing transports
+var _provide_stack: Variant = false
 
 ## List of added transports
 var _transports: Array[Transport]
@@ -195,7 +223,9 @@ func enable_levels_from(level: int) -> void:
 ## transports in the order they are added.
 ##
 func add_transport(transport: Transport) -> void:
-	_transports.push_back(transport)
+	transport._logger = self
+	_transports.append(transport)
+	_recalculate_is_stack_needed()
 
 
 ##
@@ -272,6 +302,23 @@ func message(level: int, msg: String, ns: StringName = NS_UNDEFINED) -> void:
 	msg_data.msg = msg
 	msg_data.ns = ns
 
+	if (
+		_provide_stack
+		&& (typeof(_provide_stack) == TYPE_BOOL || (_provide_stack as Dictionary).get(level))
+	):
+		var stack = get_stack()
+		if stack:
+			var source = stack[0].source
+			# stack[0] is the get_stack() call
+			# the real origin can be stack[1] when calling the Hanpeki.message method directly,
+			# or stack[2] when calling any level method or using WithBoundsNs
+			# but basically, is the first entry out of the current file
+			for i in range(stack.size()):
+				var s = stack[i]
+				if s.source != source:
+					msg_data.stack = stack.slice(i)
+					break
+
 	for transport in transports:
 		transport.process(msg_data)
 
@@ -291,6 +338,33 @@ static func _is_valid_level(level: int, custom: bool = false) -> bool:
 
 
 ##
+## Calculate if the stack is needed or not based on the configuration of the
+## attached transports.
+## Consider this method Protected, as it's called internaly by the transports
+## when setting new options (and internally when a new transport is added as well)
+##
+func _recalculate_is_stack_needed() -> void:
+	var res: Variant = false
+	for transport in _transports:
+		var tsf = transport._stack_mode
+		if typeof(tsf) == TYPE_INT:
+			if tsf == Transport.StackLevelMode.NONE:
+				break
+			else:
+				# If a transport requires the stack always, then just provide it always
+				_provide_stack = true
+				return
+		for level in tsf:
+			# if it needs to be enabled for a level
+			if tsf[level] as Transport.StackLevelMode != Transport.StackLevelMode.NONE:
+				# if res was still a boolean, it needs to be set as per-level
+				if typeof(res) == TYPE_BOOL:
+					res = {}
+				res[level] = true
+	_provide_stack = res
+
+
+##
 ## Gets the list of transports to use for a given [param level]
 ## (this could have been a one-line lambda with filter, but this is supposed to be faster)
 ##
@@ -304,7 +378,8 @@ func _get_active_transports(level: int) -> Array[Transport]:
 
 
 ##
-## Object storing the options to create [HanpekiLogger] instances via [member HanpekiLogger.create]
+## Object storing the options to create [HanpekiLogger] instances via [method HanpekiLogger.create]
+## or to be used in [method HanpekiLogger.set_options]
 ##
 class Options:
 	## List of custom levels to add (appart from the default ones) as
@@ -318,6 +393,14 @@ class Options:
 	## Each level can be provided as the int value or the level name (case-insensitive)
 	## Leave empty to use only [code]level[/code] or the default levels
 	var levels: Array[Variant]
+	## Wheter to include the stack of the log call in the data passed to the transports.
+	## This can be configured the same for all levels by providing a [enum StackLevelConfig] or
+	## per level with a [code]Dictionary[level, StackLevelConfig][/code] (being undefined levels
+	## the same as providing [enum StackLevelConfig.NONE].
+	##
+	## Note that it will be always disabled on non-build builds. See [method get_stack] for
+	## limitations and how to enable it on production builds
+	var disable_stack: Variant  # StackLevelConfig | Dictionary[int, StackLevelConfig]
 
 
 ##
@@ -338,12 +421,36 @@ class Transport:
 		RELATIVE,
 	}
 
+	## Define what stack information to include in the mesage data passed to transports
+	enum StackLevelMode {
+		## Special level to be used by transports to use the logger level
+		INHERIT = -1,
+		## Include no stack information
+		NONE,
+		## Only provide the origin (where the log was called from)
+		## Note that this is only possible if the stack information is available
+		ORIGIN,
+		## Provide the full stack
+		## Note that this is only possible if the stack information is available
+		FULL,
+	}
+
+	const DEFAULT_STACK_LEVEL: Dictionary[int, StackLevelMode] = {
+		HanpekiLogger.FATAL: StackLevelMode.FULL,
+		HanpekiLogger.ERROR: StackLevelMode.ORIGIN,
+		HanpekiLogger.WARN: StackLevelMode.ORIGIN,
+	}
+
 	## Level to use by the transport, by default the same as the logger where it's registered
 	var _level: int = HanpekiLogger.INHERIT
 	## How to format the time with [member _get_time_str]
 	var _time_format: TimeFormat = TimeFormat.SYSTEM_TIME
 	## Timezone offset in secs
 	var _time_bias: int
+	## StackLevelMode | Dictionary[int, StackLevelMode]
+	var _stack_mode: Variant = DEFAULT_STACK_LEVEL
+	## Associated logger instance when attached (HanpekiLogger | null)
+	var _logger: Variant = null
 
 	##
 	## Apply an [param options] object
@@ -355,6 +462,9 @@ class Transport:
 			if options == null
 			else options.time_format
 		)
+		if _logger:
+			(_logger as HanpekiLogger)._recalculate_is_stack_needed()
+		_stack_mode = _eval_provide_stack(options.stack_mode)
 
 	##
 	## Level to use by this Transport independently from the one set in the logger.
@@ -379,6 +489,39 @@ class Transport:
 	##
 	func process(_data: MsgData) -> void:
 		assert(false, "%s is an abstract class that must be extended" % get_class())
+
+	##
+	## Evaluates the [member Options.provide_stack] config based on the current environment.
+	## The returned value will vary depending on the provided [param config]:
+	## - If given a [enum StackLevelConfig], a single [enum StackLevelMode] will be returned.
+	## - In the case of being given a [code]Dictionary[int, StackLevelConfig][/code], then a
+	## [code]Dictionary[int, StackLevelMode][/code] will be returned
+	##
+	static func _eval_provide_stack(config: Variant) -> Variant:
+		if typeof(config) == TYPE_INT:
+			return config
+		var res: Dictionary[int, StackLevelMode] = {}
+		var is_debug = OS.is_debug_build()
+
+		for level in config:
+			var value = config[level]
+
+			if value == StackLevelConfig.NONE:
+				res[level] = StackLevelMode.NONE
+			if value == StackLevelConfig.ORIGIN:
+				res[level] = StackLevelMode.ORIGIN
+			if value == StackLevelConfig.FULL:
+				res[level] = StackLevelMode.FULL
+			if value == StackLevelConfig.ORIGIN_IF_DEBUG:
+				res[level] = StackLevelMode.ORIGIN if is_debug else StackLevelConfig.NONE
+			if value == StackLevelConfig.FULL_IF_DEBUG:
+				res[level] = StackLevelMode.FULL if is_debug else StackLevelConfig.NONE
+			if value == StackLevelConfig.ORIGIN_IF_PROD:
+				res[level] = StackLevelMode.ORIGIN if !is_debug else StackLevelConfig.NONE
+			if value == StackLevelConfig.FULL_IF_PROD:
+				res[level] = StackLevelMode.FULL if !is_debug else StackLevelConfig.NONE
+
+		return res
 
 	func _init() -> void:
 		_time_bias = Time.get_time_zone_from_system().bias * 60
@@ -408,11 +551,39 @@ class Transport:
 			% [time.year, time.month, time.day, time.hour, time.minute, time.second, ms]
 		)
 
+	## Get the stack as a string for the given [param data] based on the current settings
+	func _get_stack_str(data: MsgData) -> String:
+		if !data.stack:
+			return ""
+
+		var mode = (
+			_stack_mode
+			if typeof(_stack_mode) == TYPE_INT
+			else _stack_mode.get(data.level, StackLevelMode.NONE)
+		)
+		if mode == StackLevelMode.NONE:
+			return ""
+
+		if mode == StackLevelMode.ORIGIN:
+			var item = data.stack[0]
+			return "\n   at: %s (%s:%d)" % [item.function, item.source, item.line]
+
+		assert(mode == StackLevelMode.FULL)
+		var res: Array[String] = []
+		for i in range(data.stack.size()):
+			var item = data.stack[i]
+			res.append("[%d] %s (%s:%d)" % [i, item.function, item.source, item.line])
+		return "\n   at: " + "\n       ".join(res)
+
 	class Options:
 		## Level to use by the transport. Defaults to use the one from the logger is attached to
 		var level: int = INHERIT
 		## How to format time in [member _get_time_str]
 		var time_format: TimeFormat = TimeFormat.SYSTEM_TIME
+		## Whether to include the stack of the log call in the data printed.
+		## Can be provided both as [enum StackLevelMode] (same for all levels)
+		## or per-level via [code]Dictionary[int, StackLevelMode][/code].
+		var stack_mode: Variant = DEFAULT_STACK_LEVEL
 
 
 ##
@@ -427,6 +598,11 @@ class MsgData:
 	var time: int
 	## milliseconds since the app started
 	var utime: int
+	## Result from [method get_stack] without the logger content entries ([code]stack[0][/code] is
+	## always the line making the log call) for commodity.
+	## Will be [code]Array[Dictionary][/code] unless not available, in which case will be
+	## [code]null[/code] (see [method get_stack] for details on how to enable for production builds)
+	var stack: Variant
 	## namespace
 	var ns: StringName
 	## message text

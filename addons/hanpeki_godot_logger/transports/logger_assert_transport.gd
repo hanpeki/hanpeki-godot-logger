@@ -11,9 +11,6 @@
 ##
 class_name HanpekiLoggerAssertTransport extends HanpekiLogger.Transport
 
-## By default, ERROR and FATAL levels will call assert to stop the execution of the game
-const DEFAULT_LEVELS = [HanpekiLogger.ERROR, HanpekiLogger.FATAL]
-
 ## Levels that will call [code]assert(false, data.msg)[/code]
 var _assert_levels: Array[int]
 
@@ -23,8 +20,10 @@ var _assert_levels: Array[int]
 ##
 static func create(options: Options = null) -> HanpekiLoggerAssertTransport:
 	var instance = HanpekiLoggerAssertTransport.new()
+	if !options:
+		options = Options.new()
 	instance.set_options(options)
-	instance._assert_levels = DEFAULT_LEVELS if options == null else options.assert_levels
+	instance._assert_levels = options.assert_levels
 	return instance
 
 
@@ -36,4 +35,4 @@ func process(data: HanpekiLogger.MsgData) -> void:
 class Options:
 	extends Transport.Options
 	## Levels that will call [code]assert(false, data.msg)[/code]
-	var assert_levels: Array[int]
+	var assert_levels: Array[int] = [HanpekiLogger.ERROR, HanpekiLogger.FATAL]
