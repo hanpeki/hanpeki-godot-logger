@@ -16,8 +16,10 @@ var _processed: Dictionary[int, Variant] = {}
 ## Constructor with [param options]
 ##
 static func create(options: Options = null) -> HanpekiLoggerTestTransport:
-	var instance = HanpekiLoggerTestTransport.new()
-	instance.set_options(options)
+	if !options:
+		options = HanpekiLogger.Transport.Options.new()
+	var instance = HanpekiLoggerTestTransport.new(options)
+
 	return instance
 
 
@@ -72,3 +74,13 @@ func reset_processed(level: int = HanpekiLogger.NONE) -> void:
 	if _processed.has(level):
 		_processed[level].clear()
 	_all_processed = _all_processed.filter(func(data) -> bool: return data.level != level)
+
+
+##
+## Called on instanciation.
+## It checks that a proper Options object has been provided, and encourages to use the static
+## method [method create] as a constructor/builder.
+##
+func _init(options: Options = null) -> void:
+	assert(options, "No options found. Please use HanpekiLoggerTestTransport.create()")
+	set_options(options)
