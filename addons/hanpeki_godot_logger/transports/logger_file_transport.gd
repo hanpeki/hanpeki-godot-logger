@@ -29,7 +29,7 @@ func process(data: HanpekiLogger.MsgData) -> void:
 		return
 	var time = _get_time_str(data)
 	var ns = "" if data.ns == HanpekiLogger.NS_UNDEFINED else "[%s]" % data.ns
-	var to_log = "%s %s[%s] %s\n" % [time, ns, data.level_name, data.msg]
+	var to_log = "%s %s[%s] %s%s\n" % [time, ns, data.level_name, data.msg, _get_stack_str(data)]
 	_file.store_string(to_log)
 	_file.flush()
 

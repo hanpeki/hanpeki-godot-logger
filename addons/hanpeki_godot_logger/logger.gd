@@ -573,14 +573,14 @@ class Transport:
 
 		if mode == StackLevelMode.ORIGIN:
 			var item = data.stack[0]
-			return "\n   at: %s (%s:%d)" % [item.function, item.source, item.line]
+			return "\n  at: %s (%s:%d)" % [item.function, item.source, item.line]
 
 		assert(mode == StackLevelMode.FULL)
 		var res: Array[String] = []
 		for i in range(data.stack.size()):
 			var item = data.stack[i]
 			res.append("[%d] %s (%s:%d)" % [i, item.function, item.source, item.line])
-		return "\n   at: " + "\n       ".join(res)
+		return "\n  at: " + "\n      ".join(res)
 
 	class Options:
 		## Level to use by the transport. Defaults to use the one from the logger is attached to
