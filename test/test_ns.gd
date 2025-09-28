@@ -5,8 +5,8 @@ extends GutTest
 ## Test message methods and values of a default instance
 ##
 func test_default_ns_instance() -> void:
-	var instance = HanpekiLogger.new()
-	var transport = HanpekiLoggerTestTransport.new()
+	var instance = HanpekiLogger.create()
+	var transport = HanpekiLoggerTestTransport.create()
 	instance.add_transport(transport)
 
 	assert(instance._level == TestUtils.DEFAULT_LEVEL)
@@ -33,8 +33,8 @@ func test_default_ns_instance() -> void:
 
 
 func test_ns_level() -> void:
-	var instance = HanpekiLogger.new()
-	var transport = HanpekiLoggerTestTransport.new()
+	var instance = HanpekiLogger.create()
+	var transport = HanpekiLoggerTestTransport.create()
 	instance.add_transport(transport)
 
 	assert(instance._level == TestUtils.DEFAULT_LEVEL)

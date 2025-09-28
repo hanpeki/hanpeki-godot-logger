@@ -5,8 +5,8 @@ extends GutTest
 ## Test setting options from a HanpekiLogger.Options object
 ##
 func test_set_options() -> void:
-	var instance = HanpekiLogger.new()
-	var transport = HanpekiLoggerTestTransport.new()
+	var instance = HanpekiLogger.create()
+	var transport = HanpekiLoggerTestTransport.create()
 	instance.add_transport(transport)
 
 	var options = HanpekiLogger.Options.new()
@@ -49,8 +49,8 @@ func test_set_options() -> void:
 ## Test enabling/disabling levels one by one
 ##
 func test_set_level() -> void:
-	var instance = HanpekiLogger.new()
-	var transport = HanpekiLoggerTestTransport.new()
+	var instance = HanpekiLogger.create()
+	var transport = HanpekiLoggerTestTransport.create()
 	instance.add_transport(transport)
 
 	assert(instance._level == TestUtils.DEFAULT_LEVEL)
@@ -83,8 +83,8 @@ func test_set_level() -> void:
 ## Test enabling multiple levels at once from a minimum one
 ##
 func test_enable_levels_from() -> void:
-	var instance = HanpekiLogger.new()
-	var transport = HanpekiLoggerTestTransport.new()
+	var instance = HanpekiLogger.create()
+	var transport = HanpekiLoggerTestTransport.create()
 	instance.add_transport(transport)
 
 	assert(instance._level == TestUtils.DEFAULT_LEVEL)

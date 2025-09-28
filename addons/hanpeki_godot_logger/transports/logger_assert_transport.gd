@@ -19,17 +19,34 @@ var _assert_levels: Array[int]
 ## Constructor with [param options]
 ##
 static func create(options: Options = null) -> HanpekiLoggerAssertTransport:
-	var instance = HanpekiLoggerAssertTransport.new()
 	if !options:
 		options = Options.new()
-	instance.set_options(options)
-	instance._assert_levels = options.assert_levels
-	return instance
+	return HanpekiLoggerAssertTransport.new(options)
 
 
 func process(data: HanpekiLogger.MsgData) -> void:
 	if _assert_levels.has(data.level):
 		assert(false, data.msg)
+
+
+func set_options(options: Transport.Options) -> void:
+	## Godot OOP is not the best...
+	assert(
+		options is Options,
+		"HanpekiLoggerAssertTransport.setOptions requires HanpekiLoggerAssertTransport.Options"
+	)
+	super.set_options(options)
+	_assert_levels = (options as Options).assert_levels
+
+
+##
+## Called on instanciation.
+## It checks that a proper Options object has been provided, and encourages to use the static
+## method [method create] as a constructor/builder.
+##
+func _init(options: Options) -> void:
+	assert(options, "No options found. Please use HanpekiLoggerAssertTransport.create()")
+	set_options(options)
 
 
 class Options:

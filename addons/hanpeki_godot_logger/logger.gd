@@ -91,10 +91,10 @@ var _transports: Array[Transport]
 ##
 ## Constructor with [param options]
 ##
-static func create(options: Options) -> HanpekiLogger:
-	var logger = HanpekiLogger.new()
-	logger.set_options(options)
-	return logger
+static func create(options: Options = null) -> HanpekiLogger:
+	if !options:
+		options = Options.new()
+	return HanpekiLogger.new(options)
 
 
 ##
@@ -233,10 +233,7 @@ func add_transport(transport: Transport) -> void:
 ## don't need the [code]ns[/code] parameter anymore as they will use the provided [param ns]
 ##
 func bind_ns(ns: StringName) -> WithBoundNs:
-	var bound = WithBoundNs.new()
-	bound._logger = self
-	bound._ns = ns
-	return bound
+	return WithBoundNs.new(ns, self)
 
 
 ##
@@ -335,6 +332,16 @@ static func _is_valid_level(level: int, custom: bool = false) -> bool:
 		return level > FATAL && level < MAX_LEVEL
 		# in any case, they should be positive
 	return level > 0 && level <= MAX_LEVEL
+
+
+##
+## Called on instanciation.
+## It checks that a proper Options object has been provided, and encourages to use the static
+## method [method create] as a constructor/builder.
+##
+func _init(options: Options) -> void:
+	assert(options, "No options found. Please use HanpekiLogger.create()")
+	set_options(options)
 
 
 ##
@@ -488,7 +495,7 @@ class Transport:
 	## Method called when the transport needs to log an already "parsed" message
 	##
 	func process(_data: MsgData) -> void:
-		assert(false, "%s is an abstract class that must be extended" % get_class())
+		assert(false, "HanpekiLogger.Transport is an abstract class that must be extended")
 
 	##
 	## Evaluates the [member Options.provide_stack] config based on the current environment.
@@ -710,6 +717,23 @@ class WithBoundNs:
 		if !_is_active(level):
 			return
 		_logger.message(level, msg, _ns)
+
+	##
+	## Called on instanciation.
+	## It checks that a proper Options object has been provided, and encourages to use the static
+	## method [method create] as a constructor/builder.
+	##
+	func _init(ns: StringName, logger: HanpekiLogger = null) -> void:
+		assert(
+			logger,
+			(
+				"Instance not provided. "
+				+ "Do not instanciate HanpekiLogger.WithNsBound directly, "
+				+ "instead use HanpekiLogger.bind_ns()"
+			)
+		)
+		_ns = ns
+		_logger = logger
 
 	##
 	## Check if this bound instance is active for the given [param level].

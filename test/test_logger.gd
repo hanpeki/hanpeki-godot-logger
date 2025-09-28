@@ -5,10 +5,10 @@ extends GutTest
 ## Test basic functions of a default instance
 ##
 func test_default_instance() -> void:
-	var instance = HanpekiLogger.new()
+	var instance = HanpekiLogger.create()
 	assert_eq(instance._level, TestUtils.DEFAULT_LEVEL)
 
-	var transport = HanpekiLoggerTestTransport.new()
+	var transport = HanpekiLoggerTestTransport.create()
 	assert_eq(transport._level, HanpekiLogger.INHERIT)
 	assert_eq(transport.get_processed().size(), 0)
 
@@ -36,8 +36,8 @@ func test_default_instance() -> void:
 ## Test basic functions with namespace of a default instance
 ##
 func test_default_instance_ns() -> void:
-	var instance = HanpekiLogger.new()
-	var transport = HanpekiLoggerTestTransport.new()
+	var instance = HanpekiLogger.create()
+	var transport = HanpekiLoggerTestTransport.create()
 	instance.add_transport(transport)
 
 	instance.fatal("Fatal message", &"Test NS")
@@ -62,7 +62,7 @@ func test_default_instance_ns() -> void:
 ## Test getting the level value from a level name
 ##
 func test_get_level_from_name() -> void:
-	var instance = HanpekiLogger.new()
+	var instance = HanpekiLogger.create()
 
 	instance.register_level(2 << 7, "Level 256")
 	instance.register_level(2 << 11, "Level 2048")
@@ -89,7 +89,7 @@ func test_get_level_from_name() -> void:
 ## Test getting the name associated to a level value
 ##
 func test_level_name() -> void:
-	var instance = HanpekiLogger.new()
+	var instance = HanpekiLogger.create()
 
 	instance.register_level(2 << 7, "Level 256")
 	instance.register_level(2 << 11, "Level 2048")
@@ -138,7 +138,7 @@ func test_stack() -> void:
 	var options = HanpekiLogger.Options.new()
 	options.level = HanpekiLogger.DEBUG
 	var instance = HanpekiLogger.create(options)
-	var transport = HanpekiLoggerTestTransport.new()
+	var transport = HanpekiLoggerTestTransport.create()
 	instance.add_transport(transport)
 
 	var bound = instance.bind_ns("NS")

@@ -19,13 +19,9 @@ var _file: FileAccess
 ## Constructor with [param options]
 ##
 static func create(options: Options = null) -> HanpekiLoggerFileTransport:
-	var instance = HanpekiLoggerFileTransport.new()
 	if !options:
 		options = Options.new()
-	instance.set_options(options)
-	var file_path = options.file_path
-	instance._file = _get_file(file_path)
-	return instance
+	return HanpekiLoggerFileTransport.new(options)
 
 
 func process(data: HanpekiLogger.MsgData) -> void:
@@ -36,6 +32,27 @@ func process(data: HanpekiLogger.MsgData) -> void:
 	var to_log = "%s %s[%s] %s\n" % [time, ns, data.level_name, data.msg]
 	_file.store_string(to_log)
 	_file.flush()
+
+
+func set_options(options: Transport.Options) -> void:
+	## Godot OOP is not the best...
+	assert(
+		options is Options,
+		"HanpekiLoggerFileTransport.setOptions requires HanpekiLoggerFileTransport.Options"
+	)
+	super.set_options(options)
+	var file_path = options.file_path
+	_file = _get_file(file_path)
+
+
+##
+## Called on instanciation.
+## It checks that a proper Options object has been provided, and encourages to use the static
+## method [method create] as a constructor/builder.
+##
+func _init(options: Options) -> void:
+	assert(options, "No options found. Please use HanpekiLoggerFileTransport.create()")
+	set_options(options)
 
 
 ##

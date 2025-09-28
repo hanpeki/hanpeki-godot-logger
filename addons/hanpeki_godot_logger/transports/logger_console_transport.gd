@@ -6,7 +6,7 @@ class_name HanpekiLoggerConsoleTransport extends HanpekiLogger.Transport
 
 ## Whether to use formatting or not.
 ## Note that when formatting is enabled, spaces between elements are added in the BBTags
-var _formatting: bool
+var _formatting: bool = true
 ## Format to apply to the time as a BBTag with [code]{time}[/code] replaced
 var _datetime_format: String = "[bgcolor=#333033][color=grey] {time} [/color][/bgcolor]"
 ## Formats to apply to the levels as a BBTag with [code]{level}[/code] replaced
@@ -32,12 +32,9 @@ var _stack_format = "[color=#99a]{stack}[/color]"
 ## Constructor with [param options]
 ##
 static func create(options: Options = null) -> HanpekiLoggerConsoleTransport:
-	var instance = HanpekiLoggerConsoleTransport.new()
 	if !options:
 		options = Options.new()
-	instance.set_options(options)
-	instance._formatting = options.formatting
-	return instance
+	return HanpekiLoggerConsoleTransport.new(options)
 
 
 func process(data: HanpekiLogger.MsgData) -> void:
@@ -50,6 +47,16 @@ func process(data: HanpekiLogger.MsgData) -> void:
 	else:
 		var ns = "" if data.ns == HanpekiLogger.NS_UNDEFINED else "[%s]" % data.ns
 		print("%s %s[%s] %s%s" % [time, data.level_name, ns, data.msg, _get_stack_str(data)])
+
+
+func set_options(options: Transport.Options) -> void:
+	## Godot OOP is not the best...
+	assert(
+		options is Options,
+		"HanpekiLoggerConsoleTransport.setOptions requires HanpekiLoggerConsoleTransport.Options"
+	)
+	super.set_options(options)
+	_formatting = options.formatting
 
 
 ##
@@ -91,6 +98,16 @@ func set_ns_default_format(format: String) -> void:
 ##
 func set_stack_format(format: String) -> void:
 	_stack_format = format
+
+
+##
+## Called on instanciation.
+## It checks that a proper Options object has been provided, and encourages to use the static
+## method [method create] as a constructor/builder.
+##
+func _init(options: Options) -> void:
+	assert(options, "No options found. Please use HanpekiLoggerConsoleTransport.create()")
+	set_options(options)
 
 
 func _format_level(data: HanpekiLogger.MsgData) -> String:

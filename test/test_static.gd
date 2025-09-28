@@ -43,7 +43,7 @@ func test_create() -> void:
 
 	var instance = HanpekiLogger.create(options)
 
-	var transport = HanpekiLoggerTestTransport.new()
+	var transport = HanpekiLoggerTestTransport.create()
 	instance.add_transport(transport)
 
 	instance.fatal("Fatal message")
