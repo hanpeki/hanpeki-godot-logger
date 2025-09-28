@@ -106,3 +106,63 @@ func test_level_name() -> void:
 	# Should work for custom levels
 	assert_eq(instance.get_level_name(2 << 7), "Level 256")
 	assert_eq(instance.get_level_name(2 << 11), "Level 2048")
+
+
+##
+## Test that the stack is disabled
+##
+func test_stack_disabled() -> void:
+	# When disabled, it should be null
+	var options = HanpekiLogger.Options.new()
+	options.disable_stack = true
+	var instance = HanpekiLogger.create(options)
+	var transport_options = HanpekiLogger.Transport.Options.new()
+	transport_options.stack_mode = HanpekiLogger.StackLevelConfig.NONE
+	var transport = HanpekiLoggerTestTransport.create(transport_options)
+	instance.add_transport(transport)
+
+	assert_false(instance._provide_stack)
+
+	instance.info("Info message")
+	instance.warn("Warn message", "With NS")
+	instance.message(HanpekiLogger.DEBUG, "Debug message")
+
+	for msg in transport.get_processed():
+		assert_null(msg.stack)
+
+
+##
+## Test that the stack is correctly provided
+##
+func test_stack() -> void:
+	var options = HanpekiLogger.Options.new()
+	options.level = HanpekiLogger.DEBUG
+	var instance = HanpekiLogger.create(options)
+	var transport = HanpekiLoggerTestTransport.new()
+	instance.add_transport(transport)
+
+	var bound = instance.bind_ns("NS")
+
+	assert_typeof(instance._provide_stack, TYPE_DICTIONARY)
+
+	# Test first the levels that should NOT include the stack
+	instance.message(HanpekiLogger.DEBUG, "debug msg")
+	instance.info("info msg")
+	instance.core("core msg")
+
+	for msg in transport.get_processed():
+		assert_null(msg.stack)
+
+	# Then test the levels that should include the stack
+	transport.reset_processed()
+
+	bound.warn("warn msg")
+	bound.error("error msg")
+	bound.message(HanpekiLogger.FATAL, "fatal msg")
+
+	var function_name = get_stack()[0].function
+	for msg in transport.get_processed():
+		var stack = msg.stack as Array[Dictionary]
+		assert_not_null(stack)
+		assert_gt(stack.size(), 1)
+		assert_eq(stack[0].function, function_name)

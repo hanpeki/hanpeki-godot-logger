@@ -20,8 +20,10 @@ var _file: FileAccess
 ##
 static func create(options: Options = null) -> HanpekiLoggerFileTransport:
 	var instance = HanpekiLoggerFileTransport.new()
+	if !options:
+		options = Options.new()
 	instance.set_options(options)
-	var file_path = DEFAULT_FILE_PATH if options == null else options.file_path
+	var file_path = options.file_path
 	instance._file = _get_file(file_path)
 	return instance
 
@@ -95,4 +97,4 @@ func _notification(what):
 class Options:
 	extends Transport.Options
 	## Path to use for the file to write to
-	var file_path: String
+	var file_path: String = DEFAULT_FILE_PATH

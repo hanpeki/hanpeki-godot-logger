@@ -105,3 +105,49 @@ func test_is_valid_level():
 	assert_false(HanpekiLogger._is_valid_level(60))
 	assert_false(HanpekiLogger._is_valid_level(90))
 	assert_false(HanpekiLogger._is_valid_level(1234567))
+
+
+##
+## Test the proper evaluation of [code]Dictionary[int, StackLevelConfig][/code]
+##
+func test_eval_provide_stack() -> void:
+	var is_debug = OS.is_debug_build()
+	var config: Dictionary[int, HanpekiLogger.StackLevelConfig] = {
+		100: HanpekiLogger.StackLevelConfig.NONE,
+		101: HanpekiLogger.StackLevelConfig.ORIGIN,
+		102: HanpekiLogger.StackLevelConfig.FULL,
+		103: HanpekiLogger.StackLevelConfig.ORIGIN_IF_DEBUG,
+		104: HanpekiLogger.StackLevelConfig.FULL_IF_DEBUG,
+		105: HanpekiLogger.StackLevelConfig.ORIGIN_IF_PROD,
+		106: HanpekiLogger.StackLevelConfig.FULL_IF_PROD,
+	}
+	var expected: Dictionary[int, HanpekiLogger.Transport.StackLevelMode] = {
+		100: HanpekiLogger.Transport.StackLevelMode.NONE,
+		101: HanpekiLogger.Transport.StackLevelMode.ORIGIN,
+		102: HanpekiLogger.Transport.StackLevelMode.FULL,
+		103:
+		(
+			HanpekiLogger.Transport.StackLevelMode.ORIGIN
+			if is_debug
+			else HanpekiLogger.Transport.StackLevelMode.NONE
+		),
+		104:
+		(
+			HanpekiLogger.Transport.StackLevelMode.FULL
+			if is_debug
+			else HanpekiLogger.Transport.StackLevelMode.NONE
+		),
+		105:
+		(
+			HanpekiLogger.Transport.StackLevelMode.ORIGIN
+			if !is_debug
+			else HanpekiLogger.Transport.StackLevelMode.NONE
+		),
+		106:
+		(
+			HanpekiLogger.Transport.StackLevelMode.FULL
+			if !is_debug
+			else HanpekiLogger.Transport.StackLevelMode.NONE
+		),
+	}
+	assert_eq_deep(HanpekiLogger.Transport._eval_provide_stack(config), expected)
