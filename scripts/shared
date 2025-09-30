@@ -40,7 +40,7 @@ COLOR_INFO=${COLOR_LIGHT_BLUE}
 COLOR_NAME=${COLOR_GREEN}
 COLOR_VERSION=${COLOR_GREEN}
 COLOR_FILE=${COLOR_YELLOW}
-COLOR_LIST=${COLOR_DARK_GRAY}
+COLOR_DIM=${COLOR_DARK_GRAY}
 
 # Project root (in case scripts run from a different path)
 PROJECT_ROOT="$(realpath --relative-to "$(pwd)" "$(dirname "$0")/..")"

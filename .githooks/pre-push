@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+source "$(dirname "$0")/../scripts/shared"
+
+info "Running pre-push checks..."
+
+"${PROJECT_ROOT}/scripts/test.sh"
