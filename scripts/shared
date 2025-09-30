@@ -115,3 +115,10 @@ require_gdlint() {
     fail "gdlint can't be found" >&2
   fi
 }
+
+# Check that gdformat is installed or fail if not available
+require_gdformat() {
+  if ! command -v "gdformat" >/dev/null 2>&1; then
+    fail "gdformat can't be found" >&2
+  fi
+}
