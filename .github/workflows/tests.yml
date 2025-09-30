@@ -29,4 +29,4 @@ jobs:
           "$GODOT" --headless --import
 
       - name: Run Unit Tests
-        run: scripts/test
+        run: scripts/test.sh

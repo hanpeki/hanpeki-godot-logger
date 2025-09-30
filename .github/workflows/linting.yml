@@ -25,4 +25,4 @@ jobs:
           version: 4.*
 
       - name: Run linting
-        run: scripts/lint
+        run: scripts/lint.sh
