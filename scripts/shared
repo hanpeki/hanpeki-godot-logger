@@ -43,11 +43,18 @@ COLOR_FILE=${COLOR_YELLOW}
 COLOR_DIM=${COLOR_DARK_GRAY}
 
 # Project root (in case scripts run from a different path)
-PROJECT_ROOT="$(realpath --relative-to "$(pwd)" "$(dirname "$0")/..")"
+if [ -n "${BASH_SOURCE:-}" ]; then
+  # Bash: use BASH_SOURCE to get sourced script path
+  thisPath="${BASH_SOURCE[0]}"
+else
+  # POSIX: fall back to $0 (might fail if sourced from .githooks)
+  thisPath="$0"
+fi
+PROJECT_ROOT="$(realpath --relative-to "$(pwd)" "$(dirname "${thisPath}")/..")"
 
 
 # Load configuration
-source "$(dirname "$0")/config"
+source "${PROJECT_ROOT}/scripts/config"
 
 
 #
