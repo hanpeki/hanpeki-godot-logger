@@ -33,7 +33,7 @@ sed -i.bak -E "s/^(version\s*=\s*['\"])[^'\"]+/\\1${PLUGIN_VERSION}/" "${PLUGIN_
 # Output feedback
 echo -e "Creating a .zip file for ${COLOR_NAME}${PLUGIN_NAME} ${COLOR_VERSION}v${PLUGIN_VERSION}${COLOR_RESET} > ${COLOR_FILE}${zip_file}${COLOR_RESET}"
 while IFS= read -r file; do
-  echo -e "${COLOR_LIST} - ${file}${COLOR_RESET}"
+  echo -e "${COLOR_DIM} - ${file}${COLOR_RESET}"
 done < "${temp_file}"
 echo
 
