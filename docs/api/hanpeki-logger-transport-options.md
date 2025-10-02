@@ -12,11 +12,11 @@ Level to use by the [`Transport`](./hanpeki-logger-transport.md).
 Defaults to [`HanpekiLogger.INHERIT`](./hanpeki-logger.md#enum-inherit), to use the one from the logger is attached to.
 
 
-## <a name="time_format"></a> time_format: [TimeFormat](./hanpeki-logger.md)
+## <a name="time_format"></a> time_format: [HanpekiLogger.Transport.TimeFormat](./hanpeki-logger-transport.md#enum-time-format)
 
 How to format the displayed time.
 
-Defaults to [`TimeFormat.SYSTEM_TIME`](./hanpeki-logger.md#enum-system-time).
+Defaults to [`TimeFormat.SYSTEM_TIME`](./hanpeki-logger-transport.md#enum-system-time).
 
 
 ## <a name="stack_mode"></a> stack_mode: [`StackLevelConfig`](./hanpeki-logger.md#enum-stacklevelconfig) | Dictionary[[int](https://docs.godotengine.org/en/4.5/classes/class_int.html), [`StackLevelConfig`](./hanpeki-logger.md#enum-stacklevelconfig)]

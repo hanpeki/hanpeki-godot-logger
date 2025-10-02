@@ -17,7 +17,7 @@ enum {
 	INHERIT = -1,
 	## Not really used, but available for consistency
 	NONE = 0,
-	## The lower level, only used for set the Logger silent
+	## The lowest level, only used for set the Logger silent
 	## Debug messages
 	DEBUG = 1 << 5,
 	## Informational messages to follow the code flow
@@ -33,7 +33,7 @@ enum {
 	## Maximum level just for reference. Every custom defined level must be
 	## lower than this one (and greater than FATAL).
 	## It can be used with [member enable_levels_from] to disable all logs
-	MAX_LEVEL = 1 << 62  # (highest positive power of two in Godot: 2^62)
+	MAX_LEVEL = 1 << 62 # (highest positive power of two in Godot: 2^62)
 }
 
 ##
@@ -407,7 +407,7 @@ class Options:
 	##
 	## Note that it will be always disabled on non-build builds. See [method get_stack] for
 	## limitations and how to enable it on production builds
-	var disable_stack: Variant  # StackLevelConfig | Dictionary[int, StackLevelConfig]
+	var disable_stack: Variant # StackLevelConfig | Dictionary[int, StackLevelConfig]
 
 
 ##
@@ -615,7 +615,7 @@ class MsgData:
 	## message text
 	var msg: String
 	## metadata that can be added when logging
-	var data: Variant  # Array[Variant] | null
+	var data: Variant # Array[Variant] | null
 
 
 ##
@@ -728,8 +728,8 @@ class WithBoundNs:
 			logger,
 			(
 				"Instance not provided. "
-				+ "Do not instanciate HanpekiLogger.WithNsBound directly, "
-				+ "instead use HanpekiLogger.bind_ns()"
+				+"Do not instanciate HanpekiLogger.WithNsBound directly, "
+				+"instead use HanpekiLogger.bind_ns()"
 			)
 		)
 		_ns = ns

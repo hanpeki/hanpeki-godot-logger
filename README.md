@@ -14,7 +14,7 @@
 - ☑ Dedicated namespaces
 - ☑ Per-level and per-namespace configuration
 
-Check the [API documentation here](./API.md) or keep reading for an introduction.
+Check the [API documentation here](./docs/README.md) or keep reading for an introduction.
 
 ### What is a transport?
 
