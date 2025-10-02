@@ -11,8 +11,8 @@
 ##
 class_name HanpekiLoggerAssertTransport extends HanpekiLogger.Transport
 
-## Levels that will call [code]assert(false, data.msg)[/code]
-var _assert_levels: Array[int]
+## Union of the log levels that will call [code]assert(false, data.msg)[/code]
+var _assert_levels: int
 
 
 ##
@@ -25,7 +25,7 @@ static func create(options: Options = null) -> HanpekiLoggerAssertTransport:
 
 
 func process(data: HanpekiLogger.MsgData) -> void:
-	if _assert_levels.has(data.level):
+	if data.level & _assert_levels != 0:
 		assert(false, data.msg)
 
 
@@ -51,5 +51,5 @@ func _init(options: Options) -> void:
 
 class Options:
 	extends Transport.Options
-	## Levels that will call [code]assert(false, data.msg)[/code]
-	var assert_levels: Array[int] = [HanpekiLogger.ERROR, HanpekiLogger.FATAL]
+	## Union of the log levels that will call [code]assert(false, data.msg)[/code]
+	var assert_levels: int = HanpekiLogger.ERROR | HanpekiLogger.FATAL
