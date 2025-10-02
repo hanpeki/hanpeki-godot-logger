@@ -14,6 +14,8 @@
 - ☑ Dedicated namespaces
 - ☑ Per-level and per-namespace configuration
 
+Check the [API documentation here](./API.md) or keep reading for an introduction.
+
 ### What is a transport?
 
 A transport is a way to handle a log event — it "transports" the event from its origin to an output.
@@ -42,11 +44,9 @@ This plugin provides a class called `HanpekiLogger` without creating any singlet
 
 Since this is a utility, there’s no need to attach a `Node` as in some other libraries. You can simply use a static class, or create a singleton instance if that fits your project.
 
-### Example
+### Quick Example
 
-The provided class is named `HanpekiLogger` to avoid conflicts with common class names such as `Log` or `Logger`, providing full freedom to choose any name when creating an instance.
-
-Because of this design choice, a small configuration step is required. In return, it provides greater customization and flexibility, making it a solid option for projects of any size.
+Because this addon puts first flexibility and freedom over opinionated code, a small configuration step is required. In return, it provides greater customization and flexibility, making it a solid option for projects of any size.
 
 In the following example, `Log` is used for simplicity and readability.
 
@@ -57,16 +57,22 @@ In the following example, `Log` is used for simplicity and readability.
 
 class_name Log
 
+# Raw logger instance
+# Usually wouldn't be used if all the code is properly organized in categories
+# but it depends on the project, and it's done here to show usage examples
+static var instance: HanpekiLogger
+
 # Logger bound to the "UI" namespace
 static var ui: HanpekiLogger.WithBindedNs
 # Logger bound to the "ScriptManager" namespace
 static var scriptManager: HanpekiLogger.WithBindedNs
 
+
 static func init() -> void:
   var options = HanpekiLogger.Options.new()
   # Don't log debug and info messages by default
   options.levels = ["fatal", "error", "warn"]
-  var instance = HanpekiLogger.create(options)
+  instance = HanpekiLogger.create(options)
 
   # Enable logging to the console
   instance.add_transport(HanpekiLoggerConsoleTransport.create())
@@ -84,6 +90,16 @@ static func init() -> void:
 ```
 
 ```gdscript
+#
+# From the main scene
+#
+
+# Simple messages without namespace can be logged like this
+Log.instance.debug("Message without namespace")
+# Or provideing namespaces manually
+Log.instance.debug("Message with namespace", "Namespace")
+
+
 #
 # From some UI menu
 #
@@ -106,22 +122,4 @@ Log.scriptManager.debug("Initializing default states")
 
 # But "info" messages will do just for this namespace!
 Log.scriptManager.info("States initialized")
-```
-
-## API Reference
-
-Coming soon...
-
-## Development notes
-
-### Class.create() vs Class.new()
-
-Since Godot doesn't allow overriding the `.init()` method properly to provide constructors with required parameters (actually it's allowed because the original signature has no methods, but not standard), the preferred approach to create instances is by calling their static `.create()` method.
-
-```gdscript
-# Don't
-var logger = HanpekiLogger.new()
-
-# Do
-var logger = HanpekiLogger.create()
 ```

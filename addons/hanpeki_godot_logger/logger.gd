@@ -605,8 +605,8 @@ class MsgData:
 	var time: int
 	## milliseconds since the app started
 	var utime: int
-	## Result from [method get_stack] without the logger content entries ([code]stack[0][/code] is
-	## always the line making the log call) for commodity.
+	## Result from [method get_stack] with the entries for the logger internal code
+	## filtered out, so `stack[0]` will always be the line making the log call.
 	## Will be [code]Array[Dictionary][/code] unless not available, in which case will be
 	## [code]null[/code] (see [method get_stack] for details on how to enable for production builds)
 	var stack: Variant
