@@ -61,7 +61,7 @@ enum StackLevelConfig {
 }
 
 ## This version is used in the build process for the plugin config and the zip filename
-const VERSION = "1.0.0-rc.1"
+const VERSION = "1.0.0-rc.2"
 ## Value for undefined namespaces
 const NS_UNDEFINED = &""
 
