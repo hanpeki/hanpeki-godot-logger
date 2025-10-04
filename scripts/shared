@@ -8,7 +8,7 @@
 ###
 
 # Fail on error
-set -e
+set -euo pipefail
 
 
 #
@@ -41,16 +41,17 @@ COLOR_NAME=${COLOR_GREEN}
 COLOR_VERSION=${COLOR_GREEN}
 COLOR_FILE=${COLOR_YELLOW}
 COLOR_DIM=${COLOR_DARK_GRAY}
+COLOR_TAG=${COLOR_PURPLE}
 
 # Project root (in case scripts run from a different path)
 if [ -n "${BASH_SOURCE:-}" ]; then
   # Bash: use BASH_SOURCE to get sourced script path
-  thisPath="${BASH_SOURCE[0]}"
+  this_path="${BASH_SOURCE[0]}"
 else
   # POSIX: fall back to $0 (might fail if sourced from .githooks)
-  thisPath="$0"
+  this_path="$0"
 fi
-PROJECT_ROOT="$(realpath --relative-to "$(pwd)" "$(dirname "${thisPath}")/..")"
+PROJECT_ROOT="$(realpath --relative-to "$(pwd)" "$(dirname "${this_path}")/..")"
 
 
 # Load configuration
@@ -121,4 +122,33 @@ require_gdformat() {
   if ! command -v "gdformat" >/dev/null 2>&1; then
     fail "gdformat can't be found" >&2
   fi
+}
+
+# Create a .zip on target path ($1) from the list specified in the
+# file from the path ($2)
+zip_files() {
+  target=$1
+  file_list_path=$2
+
+  if [ -n "${SEVEN_ZIP:-}" ] && command -v "$SEVEN_ZIP" > /dev/null 2>&1; then
+    # if 7z is available, use it
+    "$SEVEN_ZIP" a "$target" @"${file_list_path}" | grep -E "(Add new data)|(Everything is Ok)"
+
+  elif command -v "zip" > /dev/null 2>&1; then
+    # if no 7z is available, fallback to the zip command
+    zip -r "${target}" -@ < "${file_list_path}" > /dev/null
+
+  else
+    # if no 7z or zip are available, fail
+    fail "No 7z nor zip commands are available"
+
+  fi
+}
+
+# Return the tag of the current github environment variable
+# Empty string if not found
+get_github_tag() {
+  local tagName="${GITHUB_REF:-}"
+  tagName="${tagName#refs/tags/}"
+  echo "${tagName}"
 }

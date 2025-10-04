@@ -9,6 +9,7 @@
 source "$(dirname "$0")/shared"
 
 
+
 # Define a cleanup function to run at the end, no matter what
 cleanup() {
   if [ -f "$temp_file" ]; then
@@ -18,6 +19,44 @@ cleanup() {
 
 # Register the cleanup function to run on exit
 trap cleanup EXIT
+
+# Default values
+temp_file="-"
+test_version=false
+
+# Parse options
+while getopts ":t" opt; do
+  case $opt in
+    t)
+      test_version=true
+      ;;
+    \?)
+      echo "Unknown option: -$OPTARG" >&2
+      exit 1
+      ;;
+  esac
+done
+
+# Shift away the parsed options
+shift $((OPTIND - 1))
+
+# If -t was given, test that the version is the same as the tag to use
+if [ "${test_version}" = true ]; then
+  tagName=$(get_github_tag)
+
+  if [ -z "${tagName}" ]; then
+    fail "No tag detected."
+  fi
+
+  info "Codebase version: ${COLOR_VERSION}${PLUGIN_VERSION}${COLOR_RESET}"
+  info "Building from tag: ${COLOR_TAG}${tagName}${COLOR_RESET}"
+
+  if [ "v${PLUGIN_VERSION}" != "${tagName}" ]; then
+    fail "Version mismatch: ${COLOR_VERSION}${PLUGIN_VERSION}${COLOR_RESET} != ${COLOR_TAG}${tagName}${COLOR_RESET}".
+  else
+    info "Versions match."
+  fi
+fi
 
 # Create a temporal file
 temp_file=$(mktemp)
@@ -38,12 +77,17 @@ done < "${temp_file}"
 echo
 
 # If the output file existed, remove it
-if [ -f "$zip_file" ]; then
-  rm "$zip_file"
+if [ -f "${zip_file}" ]; then
+  rm "${zip_file}"
+fi
+
+# If the output folder doesn't exist, create it
+if [ ! -d "${OUTPUT_FOLDER}" ]; then
+  mkdir -p "${OUTPUT_FOLDER}"
 fi
 
 # Create the zip file
-"$SEVEN_ZIP" a "$zip_file" @"${temp_file}" | grep -E "(Add new data)|(Everything is Ok)"
+zip_files "${zip_file}" "${temp_file}"
 
 # Revert the changes done in the plugin config (in case of running it in local)
 mv "${PLUGIN_CONFIG_FILE}".bak "${PLUGIN_CONFIG_FILE}"
