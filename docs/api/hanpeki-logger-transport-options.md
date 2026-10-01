@@ -22,12 +22,13 @@ Whether to include the stack of the log call in the data printed.
 
 Can be provided both as [`StackLevelConfig`](./hanpeki-logger.md#enum-stacklevelconfig) (same for all levels), or per-level via `Dictionary[int, StackLevelConfig]`.
 
-Defaults to:
+Defaults to [`StackLevelConfig.INHERIT`](./hanpeki-logger.md#enum-stacklevelconfig-inherit), to use the [stack mode of the logger](./hanpeki-logger-options.md#stack_mode) it's attached to. Levels not included in a per-level configuration also inherit it, so only the levels to override need to be provided:
 
 ```
-{
-  HanpekiLogger.FATAL: StackLevelConfig.FULL_IF_DEBUG,
-  HanpekiLogger.ERROR: StackLevelConfig.ORIGIN_IF_DEBUG,
-  HanpekiLogger.WARN: StackLevelConfig.ORIGIN_IF_DEBUG,
+# Display the stack as the logger provides it, but never for warnings
+options.stack_mode = {
+  HanpekiLogger.WARN: StackLevelConfig.NONE,
 }
 ```
+
+Any other value overrides the stack mode of the logger for this transport, either displaying more or less stack information. For example, a transport configured with `FULL` will display the full stack even if the logger stack mode is `NONE` for that level. Note that this is different from [levels](#level), where the logger acts as a limit for the transports.
