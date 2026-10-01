@@ -223,7 +223,7 @@ func enable_levels_from(level: int) -> void:
 ## transports in the order they are added.
 ##
 func add_transport(transport: Transport) -> void:
-	transport._logger = self
+	transport._logger = weakref(self)
 	_transports.append(transport)
 	_recalculate_is_stack_needed()
 
@@ -456,8 +456,8 @@ class Transport:
 	var _time_bias: int
 	## StackLevelMode | Dictionary[int, StackLevelMode]
 	var _stack_mode: Variant = DEFAULT_STACK_LEVEL
-	## Associated logger instance when attached (HanpekiLogger | null)
-	var _logger: Variant = null
+	## Associated logger instance when attached (WeakRef | null)
+	var _logger: WeakRef = null
 
 	##
 	## Apply an [param options] object
@@ -469,8 +469,9 @@ class Transport:
 			if options == null
 			else options.time_format
 		)
-		if _logger:
-			(_logger as HanpekiLogger)._recalculate_is_stack_needed()
+		var logger = _logger.get_ref() if _logger else null
+		if logger:
+			(logger as HanpekiLogger)._recalculate_is_stack_needed()
 		_stack_mode = _eval_provide_stack(options.stack_mode)
 
 	##
