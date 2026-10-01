@@ -74,6 +74,14 @@ const DEFAULT_STACK_LEVEL: Dictionary[int, StackLevelConfig] = {
 	WARN: StackLevelConfig.ORIGIN_IF_DEBUG,
 }
 
+## Unix time (in milliseconds) when the app started, calculated once so the time of each message
+## can be obtained from [method Time.get_ticks_msec] only, keeping the relative time between
+## messages consistent and avoiding calling [method Time.get_unix_time_from_system] every time.
+## Note that changes in the system clock while the app is running won't be reflected.
+static var _start_unix_ms: int = (
+	int(Time.get_unix_time_from_system() * 1000) - Time.get_ticks_msec()
+)
+
 ## Name to display for each level
 var _names: Dictionary[int, String] = {
 	DEBUG: "Debug",
@@ -357,8 +365,9 @@ func message(level: int, msg: String, ns: StringName = NS_UNDEFINED) -> void:
 		return
 
 	var msg_data = MsgData.new()
-	msg_data.time = Time.get_unix_time_from_system()
 	msg_data.utime = Time.get_ticks_msec()
+	@warning_ignore("integer_division")
+	msg_data.time = (_start_unix_ms + msg_data.utime) / 1000
 	msg_data.level = level
 	msg_data.level_name = _names[level]
 	msg_data.msg = msg
@@ -652,7 +661,8 @@ class Transport:
 			if (_time_format == TimeFormat.UTC_TIME || _time_format == TimeFormat.UTC_DATE_TIME)
 			else data.time + _time_bias
 		)
-		var ms = data.utime % 1000
+		# milliseconds need to be calculated the same way as data.time to be consistent
+		var ms = (HanpekiLogger._start_unix_ms + data.utime) % 1000
 
 		if _time_format == TimeFormat.UTC_TIME || _time_format == TimeFormat.SYSTEM_TIME:
 			var time = Time.get_time_dict_from_unix_time(unix)
@@ -711,7 +721,8 @@ class MsgData:
 	var level: int
 	## name of the message level
 	var level_name: String
-	## unix time
+	## unix time (in seconds), calculated from [member utime] and the unix time when the app
+	## started, so changes in the system clock while the app is running won't be reflected
 	var time: int
 	## milliseconds since the app started
 	var utime: int
