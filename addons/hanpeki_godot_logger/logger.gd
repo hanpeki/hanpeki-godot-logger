@@ -221,8 +221,17 @@ func enable_levels_from(level: int) -> void:
 ##
 ## Adds a transport to process the messages. Messages will be provided to
 ## transports in the order they are added.
+## A transport can only be attached to one logger at a time. Use [method remove_transport]
+## before adding it to a different one.
 ##
 func add_transport(transport: Transport) -> void:
+	var current = transport._logger.get_ref() if transport._logger else null
+	if current == self:
+		assert(false, "Trying to add a transport that was already added to this logger")
+		return
+	if current:
+		assert(false, "Trying to add a transport that is already attached to another logger")
+		return
 	transport._logger = weakref(self)
 	_transports.append(transport)
 	_recalculate_is_stack_needed()
