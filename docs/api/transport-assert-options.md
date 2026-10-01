@@ -1,6 +1,6 @@
 # <a name="class-options"></a> [HanpekiLogger.Transport.Options](./hanpeki-logger-transport-options.md) > HanpekiLoggerAssertTransport.Options
 
-`Options` class, internal to [HanpekiLoggerAssertTransport](./transport-assert-options.md). Extends [HanpekiLogger.Transport.Options](./hanpeki-logger-transport-options.md).
+`Options` class, internal to [HanpekiLoggerAssertTransport](./transport-assert.md). Extends [HanpekiLogger.Transport.Options](./hanpeki-logger-transport-options.md).
 
 Stores the options to create instances of the `HanpekiLoggerAssertTransport` class.
 
