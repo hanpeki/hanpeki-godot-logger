@@ -8,6 +8,6 @@
 
 source "$(dirname "$0")/shared"
 
-require_gdlint
+GDLINT=$(require_gdlint)
 
-gdlint "${PLUGIN_FOLDER}" "${PROJECT_ROOT}/test"
+"${GDLINT}" "${PLUGIN_FOLDER}" "${PROJECT_ROOT}/test"

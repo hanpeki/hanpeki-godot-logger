@@ -2,6 +2,38 @@
 
 Notes about development and technical decisions will be placed here.
 
+## Getting started
+
+### Using VS Code
+
+Using the Godot extension for VS Code requires to specify the path to the godot binary. Since this depends on the local machine, the repository doesn't provide it.
+
+Just add the following line to your `.vscode/settings.json`:
+
+```
+"godotTools.editorPath.godot4": "PATH\\TO\\GODOT\\Godot_v4.6-stable_win64.exe"
+```
+
+### godot
+
+Running tests require the `godot` executable to be available. There are multiple ways to provide it:
+
+- First, it will be checked if `$GODOT` is defined and pointing to a valid godot executable.
+- Then, it will be checked if defined in `.vscode/settings.json` (`godotTools.editorPath.godot4`).
+- Last, it will be checked if it's available in `$PATH`.
+
+The first one that is executable and returns a Godot version is used.
+
+Its version must match the one specified in `project.godot` (only `major.minor` is compared, so `4.6`, `4.6.0` and `4.6.1` are compatible). Otherwise, the scripts will fail, as a reminder to update `$GODOT` or `.vscode/settings.json` after upgrading Godot.
+
+### gdlint and gdformat
+
+The CI pipeline as well as the git pre-commit hook require linting for this project, which is provided by [godot-gdscript-toolkit](https://github.com/Scony/godot-gdscript-toolkit).
+
+Make sure it's installed following its instructions.
+
+The executables will be picked from `$PATH` if available. Otherwise, they will be auto-detected from the `gdtoolkit` package installed via `pip` (`pip3`, `pip` or `python3 -m pip`) or `pipx`, so there's no need to add them to `$PATH`.
+
 ## CI
 
 When a PR is created, as well as when it's merged into the `main` branch, some checks will be performed via github actions:

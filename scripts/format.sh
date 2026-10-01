@@ -8,6 +8,6 @@
 
 source "$(dirname "$0")/shared"
 
-require_gdformat
+GDFORMAT=$(require_gdformat)
 
-gdformat "${PLUGIN_FOLDER}" "${PROJECT_ROOT}/test"
+"${GDFORMAT}" "${PLUGIN_FOLDER}" "${PROJECT_ROOT}/test"
