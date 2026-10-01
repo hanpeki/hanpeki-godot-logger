@@ -237,10 +237,16 @@ func set_level(level: int, enabled: bool) -> void:
 ## If [member MAX_LEVEL] is given, every level will be disabled.
 ##
 func enable_levels_from(level: int) -> void:
+	if level == NONE:
+		_level = _registered_levels
+		return
+
+	if level == MAX_LEVEL:
+		_level = NONE
+		return
+
 	assert(_is_valid_level(level), "Trying to enable levels but an invalid value was given")
-	assert(
-		level == NONE || _registered_levels & level != NONE, "Trying to set an unregistered level"
-	)
+	assert(_registered_levels & level != NONE, "Trying to set an unregistered level")
 	_level = ~(level - 1) & _registered_levels
 
 

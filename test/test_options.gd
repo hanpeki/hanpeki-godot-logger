@@ -102,3 +102,42 @@ func test_enable_levels_from() -> void:
 		instance._level,
 		HanpekiLogger.FATAL | HanpekiLogger.ERROR | HanpekiLogger.WARN | custom_level
 	)
+
+
+##
+## Test enabling every level by providing NONE as the minimum level
+##
+func test_enable_levels_from_none() -> void:
+	var instance = HanpekiLogger.create()
+	var transport = HanpekiLoggerTestTransport.create()
+	instance.add_transport(transport)
+	var custom_level = HanpekiLogger.DEBUG >> 1
+	instance.register_level(custom_level, "Custom")
+
+	instance.enable_levels_from(HanpekiLogger.NONE)
+	assert_eq(instance._level, instance._registered_levels)
+
+	instance.debug("Debug message")
+	instance.message(custom_level, "Custom message")
+	assert_true(transport.has_processed_message("Debug message"))
+	assert_true(transport.has_processed_message("Custom message"))
+
+
+##
+## Test disabling every level by providing MAX_LEVEL as the minimum level
+##
+func test_enable_levels_from_max_level() -> void:
+	var instance = HanpekiLogger.create()
+	var transport = HanpekiLoggerTestTransport.create()
+	instance.add_transport(transport)
+
+	instance.enable_levels_from(HanpekiLogger.MAX_LEVEL)
+	assert_eq(instance._level, HanpekiLogger.NONE)
+
+	instance.fatal("Fatal message")
+	assert_eq(transport.get_processed().size(), 0)
+
+	# Levels can still be enabled again afterwards
+	instance.enable_levels_from(HanpekiLogger.NONE)
+	instance.fatal("Fatal message")
+	assert_true(transport.has_processed_message("Fatal message"))
