@@ -14,6 +14,12 @@ static var _files: Dictionary[String, WeakRef] = {}
 
 ## File to write into ([code]null[/code] if it couldn't be opened)
 var _file: FileAccess
+## Minimum time between flushes, in milliseconds (see [member Options.flush_interval_ms])
+var _flush_interval_ms: int
+## Levels that are always flushed right away (see [member Options.flush_levels])
+var _flush_levels: int
+## Time of the last flush, as [member HanpekiLogger.MsgData.utime]
+var _last_flush: int = 0
 
 
 ##
@@ -32,7 +38,10 @@ func process(data: HanpekiLogger.MsgData) -> void:
 	var ns = "" if data.ns == HanpekiLogger.NS_UNDEFINED else "[%s]" % data.ns
 	var to_log = "%s %s[%s] %s%s\n" % [time, ns, data.level_name, data.msg, _get_stack_str(data)]
 	_file.store_string(to_log)
-	_file.flush()
+	# data.utime is used as the current time to avoid getting it again
+	if data.level & _flush_levels != 0 || data.utime - _last_flush >= _flush_interval_ms:
+		_file.flush()
+		_last_flush = data.utime
 
 
 func set_options(options: Transport.Options) -> void:
@@ -44,6 +53,8 @@ func set_options(options: Transport.Options) -> void:
 	super.set_options(options)
 	var file_path = options.file_path
 	_file = _get_file(file_path)
+	_flush_interval_ms = options.flush_interval_ms
+	_flush_levels = options.flush_levels
 
 
 ##
@@ -114,3 +125,14 @@ class Options:
 	## ([code]user://[/code], [code]res://[/code] or OS paths) are used as they are.
 	## Note that [code]res://[/code] is read-only in exported projects.
 	var file_path: String = DEFAULT_FILE_PATH
+	## Minimum time (in milliseconds) between flushes of the file, as flushing after every message
+	## can be a performance hit. The check is done when a message is logged, so messages logged
+	## after the last flush are written when the next message is logged, the internal buffer is
+	## full, or the file is closed (when the last transport using it is freed).
+	## [code]0[/code] flushes after every message.
+	## Defaults to [code]0[/code] in debug builds and [code]5000[/code] (5 seconds) in release ones.
+	var flush_interval_ms: int = 0 if OS.is_debug_build() else 5000
+	## Union of the levels that are always flushed right away, regardless of
+	## [member flush_interval_ms], so the important messages are not lost if the app crashes.
+	## Defaults to [code]HanpekiLogger.ERROR | HanpekiLogger.FATAL[/code].
+	var flush_levels: int = HanpekiLogger.ERROR | HanpekiLogger.FATAL

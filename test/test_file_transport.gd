@@ -108,12 +108,92 @@ func test_file_open_error() -> void:
 
 
 ##
+## Test the default flush options
+##
+func test_flush_defaults() -> void:
+	var options = HanpekiLoggerFileTransport.Options.new()
+
+	assert_eq(options.flush_interval_ms, 0 if OS.is_debug_build() else 5000)
+	assert_eq(options.flush_levels, HanpekiLogger.ERROR | HanpekiLogger.FATAL)
+
+
+##
+## Test that the file is flushed only after the interval passes, or right away for the
+## configured levels
+##
+func test_flush_interval() -> void:
+	var path = TEST_FOLDER + "/flush.txt"
+	var options = HanpekiLoggerFileTransport.Options.new()
+	options.file_path = path
+	options.flush_interval_ms = 5000
+	options.flush_levels = HanpekiLogger.ERROR
+	var transport = HanpekiLoggerFileTransport.create(options)
+
+	# Within the interval, no flush
+	transport.process(_create_msg_data(HanpekiLogger.INFO, "Msg1", 1000))
+	assert_eq(transport._last_flush, 0)
+
+	# Once the interval passes, flushed (including the previous messages)
+	transport.process(_create_msg_data(HanpekiLogger.INFO, "Msg2", 5000))
+	assert_eq(transport._last_flush, 5000)
+	var content = FileAccess.get_file_as_string(path)
+	assert_string_contains(content, "Msg1")
+	assert_string_contains(content, "Msg2")
+
+	# The interval counts from the last flush
+	transport.process(_create_msg_data(HanpekiLogger.INFO, "Msg3", 9000))
+	assert_eq(transport._last_flush, 5000)
+
+	# Flush levels are flushed right away
+	transport.process(_create_msg_data(HanpekiLogger.ERROR, "Msg4", 9500))
+	assert_eq(transport._last_flush, 9500)
+	content = FileAccess.get_file_as_string(path)
+	assert_string_contains(content, "Msg3")
+	assert_string_contains(content, "Msg4")
+
+	# But other levels are not
+	transport.process(_create_msg_data(HanpekiLogger.FATAL, "Msg5", 10000))
+	assert_eq(transport._last_flush, 9500)
+
+
+##
+## Test that an interval of 0 flushes after every message
+##
+func test_flush_every_message() -> void:
+	var path = TEST_FOLDER + "/flush_all.txt"
+	var options = HanpekiLoggerFileTransport.Options.new()
+	options.file_path = path
+	options.flush_interval_ms = 0
+	options.flush_levels = HanpekiLogger.NONE
+	var transport = HanpekiLoggerFileTransport.create(options)
+
+	transport.process(_create_msg_data(HanpekiLogger.DEBUG, "Msg1", 10))
+	assert_eq(transport._last_flush, 10)
+	transport.process(_create_msg_data(HanpekiLogger.DEBUG, "Msg2", 11))
+	assert_eq(transport._last_flush, 11)
+	assert_string_contains(FileAccess.get_file_as_string(path), "Msg2")
+
+
+##
 ## Create a [HanpekiLoggerFileTransport] writing to the given [param path]
 ##
 func _create_transport(path: String) -> HanpekiLoggerFileTransport:
 	var options = HanpekiLoggerFileTransport.Options.new()
 	options.file_path = path
 	return HanpekiLoggerFileTransport.create(options)
+
+
+##
+## Create a [HanpekiLogger.MsgData] with the given [param level], [param msg] and
+## [param utime], to be processed directly by a transport
+##
+func _create_msg_data(level: int, msg: String, utime: int) -> HanpekiLogger.MsgData:
+	var data = HanpekiLogger.MsgData.new()
+	data.level = level
+	data.level_name = "Level %d" % level
+	data.msg = msg
+	data.utime = utime
+	return data
 
 
 ##
