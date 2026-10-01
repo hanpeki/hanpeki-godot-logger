@@ -15,9 +15,9 @@ class_name HanpekiLogger
 enum {
 	## Special level to be used by transports to use the logger level
 	INHERIT = -1,
-	## Not really used, but available for consistency
+	## Not a level itself. Enables every level when used with [method enable_levels_from],
+	## or none when it's the only value in [member Options.levels]
 	NONE = 0,
-	## The lowest level, only used for set the Logger silent
 	## Debug messages
 	DEBUG = 1 << 5,
 	## Informational messages to follow the code flow
@@ -31,8 +31,8 @@ enum {
 	## Only used for errors that make the app crash
 	FATAL = 1 << 30,
 	## Maximum level just for reference. Every custom defined level must be
-	## lower than this one (and greater than FATAL).
-	## It can be used with [member enable_levels_from] to disable all logs
+	## lower than this one.
+	## It can be used with [method enable_levels_from] to disable all logs
 	MAX_LEVEL = 1 << 62 # (highest positive power of two in Godot: 2^62)
 }
 
@@ -73,6 +73,9 @@ const DEFAULT_STACK_LEVEL: Dictionary[int, StackLevelConfig] = {
 	ERROR: StackLevelConfig.ORIGIN,
 	WARN: StackLevelConfig.ORIGIN_IF_DEBUG,
 }
+## Union of the predefined levels, which can't be deregistered as they are used by the built-in
+## methods ([method debug], [method info], etc.)
+const PREDEFINED_LEVELS = DEBUG | INFO | CORE | WARN | ERROR | FATAL
 
 ## Unix time (in milliseconds) when the app started, calculated once so the time of each message
 ## can be obtained from [method Time.get_ticks_msec] only, keeping the relative time between
@@ -93,7 +96,7 @@ var _names: Dictionary[int, String] = {
 }
 
 ## All registered levels, as they need to be unique at bit level (i.e. 1 | 2 | 4 ... 64)
-var _registered_levels: int = DEBUG | INFO | CORE | WARN | ERROR | FATAL
+var _registered_levels: int = PREDEFINED_LEVELS
 ## Levels to log, defaults to CORE, WARN, ERROR and FATAL
 var _level: int = CORE | WARN | ERROR | FATAL
 ## Evaluated default stack mode for the transports inheriting it.
@@ -131,22 +134,26 @@ func set_options(options: HanpekiLogger.Options) -> void:
 			continue
 		register_level(entry.level, entry.name)
 
-	if options.level:
-		enable_levels_from(options.level)
+	if options.level != null:
+		var level = _resolve_level(options.level)
+		if level == null:
+			assert(false, 'unknown level in "level"')
+		else:
+			enable_levels_from(level)
 
-	# set levels only when provided (NONE can be provided explicitly)
+	# set levels only when provided (NONE can be provided explicitly to disable every level)
 	# if no levels are given, the defaults are kept
 	if options.levels.size() > 0:
-		if !options.level:
+		if options.level == null:
 			_level = NONE
 		for entry in options.levels:
-			var level = null
-			if typeof(entry) == TYPE_INT:
-				level = entry
-			elif typeof(entry) == TYPE_STRING:
-				level = get_level_from_name(entry)
+			var level = _resolve_level(entry)
 			if level == null:
 				assert(false, 'unknown level in "levels"')
+				continue
+			# NONE is accepted, but it doesn't enable any level
+			if level == NONE:
+				continue
 			set_level(level, true)
 
 	if options.stack_mode != null:
@@ -177,18 +184,17 @@ func get_level_name(level: int) -> String:
 
 
 ##
-## Registers a custom [param level]. It needs to be greater than
-## [enum HanpekiLogger.FATAL] to avoid modifying the default levels,
-## and a power of two (i.e. [code]1 << 5[/code]) which allows more flexibility
-## than just strict numerical order when enabling/disabling them
+## Registers a custom [param level] with the given [param name].
+## The level needs to be a positive power of two (i.e. [code]1 << 5[/code]) lower than
+## [enum MAX_LEVEL] that is not already registered, which allows more flexibility than just
+## strict numerical order when enabling/disabling them.
+## Since the predefined levels are not consecutive, custom levels can be registered between them
+## to be ordered by priority (i.e. to be used with [method enable_levels_from]).
 ##
 func register_level(level: int, name: String) -> void:
 	assert(
 		_is_valid_level(level),
-		(
-			"Level must be greater than FATAL (%d), lower than MAX_LEVEL (%d) and a power of two"
-			% [FATAL, MAX_LEVEL]
-		)
+		"Level must be a power of two, greater than NONE and lower than MAX_LEVEL (%d)" % MAX_LEVEL
 	)
 	assert(_registered_levels & level == NONE, "Level already exists. It will be overwritten")
 	var is_unique_name = true
@@ -197,18 +203,25 @@ func register_level(level: int, name: String) -> void:
 		if _names[k].to_lower() == lc_name:
 			is_unique_name = false
 			break
-	assert(is_unique_name, 'A level with name "%s" already exists. Please provide an unique name')
+	assert(
+		is_unique_name,
+		'A level with name "%s" already exists. Please provide an unique name' % name
+	)
 	_registered_levels |= level
 	_names[level] = name
 	_recalculate_is_stack_needed()
 
 
 ##
-## Deregisters the given [param level]. It needs to be greater than
-## [enum HanpekiLogger.FATAL] to avoid modifying the default levels
+## Deregisters the given custom [param level].
+## Predefined levels ([constant PREDEFINED_LEVELS]) can't be deregistered, as they are used by
+## the built-in methods ([method debug], [method info], etc.)
 ##
 func deregister_level(level: int) -> void:
 	assert(_is_valid_level(level), "Trying to deregister an invalid level")
+	if level & PREDEFINED_LEVELS != NONE:
+		assert(false, "Predefined levels can't be deregistered")
+		return
 	assert(
 		_registered_levels & level != NONE, "Trying to deregister a level that is not registered"
 	)
@@ -221,7 +234,10 @@ func deregister_level(level: int) -> void:
 ## Sets the given [param level] as [param enabled] or not
 ##
 func set_level(level: int, enabled: bool) -> void:
-	assert(_is_valid_level(level), "Trying to set an invalid level")
+	assert(
+		level == NONE || level == MAX_LEVEL || _is_valid_level(level),
+		"Trying to set an invalid level"
+	)
 	assert(_registered_levels & level != NONE, "Trying to set an unregistered level")
 	if enabled:
 		_level |= level
@@ -237,10 +253,16 @@ func set_level(level: int, enabled: bool) -> void:
 ## If [member MAX_LEVEL] is given, every level will be disabled.
 ##
 func enable_levels_from(level: int) -> void:
+	if level == NONE:
+		_level = _registered_levels
+		return
+
+	if level == MAX_LEVEL:
+		_level = NONE
+		return
+
 	assert(_is_valid_level(level), "Trying to enable levels but an invalid value was given")
-	assert(
-		level == NONE || _registered_levels & level != NONE, "Trying to set an unregistered level"
-	)
+	assert(_registered_levels & level != NONE, "Trying to set an unregistered level")
 	_level = ~(level - 1) & _registered_levels
 
 
@@ -392,17 +414,29 @@ func message(level: int, msg: String, ns: StringName = NS_UNDEFINED) -> void:
 
 
 ##
-## Check if a level is valid
+## Converts a level given as an [int], or as its name ([String] or [StringName],
+## case-insensitive) into its [int] value.
+## Ints are returned as they are, to be validated by the method using them (as some of them accept
+## special values like [enum NONE]). Returns [code]null[/code] for unknown names or other types.
 ##
-static func _is_valid_level(level: int, custom: bool = false) -> bool:
+func _resolve_level(value: Variant) -> Variant:
+	var type = typeof(value)
+	if type == TYPE_INT:
+		return value
+	if type == TYPE_STRING || type == TYPE_STRING_NAME:
+		return get_level_from_name(value)
+	return null
+
+
+##
+## Check if a [param level] is valid: a positive power of two lower than [enum MAX_LEVEL]
+## ([enum MAX_LEVEL] is reserved and never a valid level)
+##
+static func _is_valid_level(level: int) -> bool:
 	# must be power of two
 	if (level & (level - 1)) != 0:
 		return false
-	if custom:
-		# custom levels must be in a valid range
-		return level > FATAL && level < MAX_LEVEL
-		# in any case, they should be positive
-	return level > 0 && level <= MAX_LEVEL
+	return level > 0 && level < MAX_LEVEL
 
 
 ##
@@ -477,6 +511,8 @@ class Options:
 	var level: Variant
 	## List of active levels. Any other level will be disabled
 	## Each level can be provided as the int value or the level name (case-insensitive)
+	## [enum NONE] is accepted but doesn't enable any level, so [code][NONE][/code] can be used
+	## to disable every level
 	## Leave empty to use only [code]level[/code] or the default levels
 	var levels: Array[Variant]
 	## Default stack mode for the transports inheriting it, applied with

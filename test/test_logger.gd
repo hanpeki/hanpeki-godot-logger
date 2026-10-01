@@ -86,6 +86,34 @@ func test_get_level_from_name() -> void:
 
 
 ##
+## Test resolving levels given as int, String or StringName into their int value
+##
+func test_resolve_level() -> void:
+	var instance = HanpekiLogger.create()
+	var custom_level = HanpekiLogger.DEBUG >> 1
+	instance.register_level(custom_level, "Custom")
+
+	# Ints are returned as they are (validated later by the method using them)
+	assert_eq(instance._resolve_level(HanpekiLogger.WARN), HanpekiLogger.WARN)
+	assert_eq(instance._resolve_level(HanpekiLogger.NONE), HanpekiLogger.NONE)
+	assert_eq(instance._resolve_level(HanpekiLogger.MAX_LEVEL), HanpekiLogger.MAX_LEVEL)
+
+	# Names, as String or StringName, case-insensitive (also for custom levels)
+	assert_eq(instance._resolve_level("Warn"), HanpekiLogger.WARN)
+	assert_eq(instance._resolve_level("FATAL"), HanpekiLogger.FATAL)
+	assert_eq(instance._resolve_level(&"debug"), HanpekiLogger.DEBUG)
+	assert_eq(instance._resolve_level(&"custom"), custom_level)
+
+	# Unknown names and other types are not resolved
+	assert_null(instance._resolve_level("Unknown"))
+	assert_null(instance._resolve_level(&"Unknown"))
+	assert_null(instance._resolve_level(null))
+	assert_null(instance._resolve_level(1.0))
+	assert_null(instance._resolve_level(true))
+	assert_null(instance._resolve_level([HanpekiLogger.WARN]))
+
+
+##
 ## Test getting the name associated to a level value
 ##
 func test_level_name() -> void:
@@ -420,3 +448,66 @@ func test_assert_transport_stack() -> void:
 
 	for level in instance._names:
 		assert_false(instance._stack_needed.has(level))
+
+
+##
+## Test registering custom levels at any position: below, between and above the predefined ones
+##
+func test_register_level() -> void:
+	var instance = HanpekiLogger.create()
+	var transport = HanpekiLoggerTestTransport.create()
+	instance.add_transport(transport)
+	assert_eq(instance._registered_levels, HanpekiLogger.PREDEFINED_LEVELS)
+
+	var lowest = 1
+	var between = HanpekiLogger.INFO << 1
+	var highest = HanpekiLogger.FATAL << 1
+	instance.register_level(lowest, "Lowest")
+	instance.register_level(between, "Between")
+	instance.register_level(highest, "Highest")
+
+	assert_eq(
+		instance._registered_levels,
+		HanpekiLogger.PREDEFINED_LEVELS | lowest | between | highest
+	)
+	assert_eq(instance.get_level_from_name("lowest"), lowest)
+	assert_eq(instance.get_level_name(between), "Between")
+
+	# Custom levels are ordered by priority with the predefined ones
+	instance.enable_levels_from(between)
+	assert_eq(
+		instance._level,
+		(
+			between
+			| HanpekiLogger.CORE
+			| HanpekiLogger.WARN
+			| HanpekiLogger.ERROR
+			| HanpekiLogger.FATAL
+			| highest
+		)
+	)
+
+	instance.message(lowest, "Lowest message")
+	instance.message(between, "Between message")
+	instance.message(highest, "Highest message")
+	assert_false(transport.has_processed_message("Lowest message"))
+	assert_true(transport.has_processed_message("Between message"))
+	assert_true(transport.has_processed_message("Highest message"))
+
+
+##
+## Test deregistering custom levels
+##
+func test_deregister_level() -> void:
+	var instance = HanpekiLogger.create()
+	var custom_level = HanpekiLogger.WARN << 1
+	instance.register_level(custom_level, "Custom")
+
+	instance.deregister_level(custom_level)
+	assert_eq(instance._registered_levels, HanpekiLogger.PREDEFINED_LEVELS)
+	assert_false(instance._names.has(custom_level))
+	assert_null(instance.get_level_from_name("Custom"))
+
+	# The same value and name can be registered again
+	instance.register_level(custom_level, "Custom")
+	assert_eq(instance.get_level_from_name("Custom"), custom_level)
