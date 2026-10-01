@@ -39,6 +39,9 @@ static func create(options: Options = null) -> HanpekiLoggerConsoleTransport:
 
 func process(data: HanpekiLogger.MsgData) -> void:
 	var time = _get_time_str(data)
+	var stack_mode = (
+		_stack_mode if typeof(_stack_mode) == TYPE_INT
+		else _stack_mode.get(data.level, StackLevelMode.NONE))
 
 	if _formatting:
 		var t = _datetime_format.replace("{time}", time)
@@ -50,7 +53,7 @@ func process(data: HanpekiLogger.MsgData) -> void:
 
 
 func set_options(options: Transport.Options) -> void:
-	## Godot OOP is not the best...
+	# Godot OOP is not the best...
 	assert(
 		options is Options,
 		"HanpekiLoggerConsoleTransport.setOptions requires HanpekiLoggerConsoleTransport.Options"

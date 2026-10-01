@@ -108,11 +108,13 @@ func test_is_valid_level():
 
 
 ##
-## Test the proper evaluation of [code]Dictionary[int, StackLevelConfig][/code]
+## Test the proper evaluation of [enum HanpekiLogger.StackLevelConfig], both as single values
+## and as [code]Dictionary[int, StackLevelConfig][/code]
 ##
 func test_eval_provide_stack() -> void:
 	var is_debug = OS.is_debug_build()
 	var config: Dictionary[int, HanpekiLogger.StackLevelConfig] = {
+		99: HanpekiLogger.StackLevelConfig.INHERIT,
 		100: HanpekiLogger.StackLevelConfig.NONE,
 		101: HanpekiLogger.StackLevelConfig.ORIGIN,
 		102: HanpekiLogger.StackLevelConfig.FULL,
@@ -122,6 +124,7 @@ func test_eval_provide_stack() -> void:
 		106: HanpekiLogger.StackLevelConfig.FULL_IF_PROD,
 	}
 	var expected: Dictionary[int, HanpekiLogger.Transport.StackLevelMode] = {
+		99: HanpekiLogger.Transport.StackLevelMode.INHERIT,
 		100: HanpekiLogger.Transport.StackLevelMode.NONE,
 		101: HanpekiLogger.Transport.StackLevelMode.ORIGIN,
 		102: HanpekiLogger.Transport.StackLevelMode.FULL,
@@ -151,3 +154,11 @@ func test_eval_provide_stack() -> void:
 		),
 	}
 	assert_eq_deep(HanpekiLogger.Transport._eval_provide_stack(config), expected)
+
+	# Single values should be evaluated the same way as the per-level ones
+	for level in config:
+		assert_eq(
+			HanpekiLogger.Transport._eval_provide_stack(config[level]),
+			expected[level],
+			"Single value %d" % config[level]
+		)

@@ -35,7 +35,7 @@ func process(data: HanpekiLogger.MsgData) -> void:
 
 
 func set_options(options: Transport.Options) -> void:
-	## Godot OOP is not the best...
+	# Godot OOP is not the best...
 	assert(
 		options is Options,
 		"HanpekiLoggerFileTransport.setOptions requires HanpekiLoggerFileTransport.Options"

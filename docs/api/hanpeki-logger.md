@@ -6,6 +6,14 @@ Main class providing the logging functionalities. Usually it would be provided a
 
 - `VERSION`: Version of the library
 - <a name="const-ns-undefined"></a>`NS_UNDEFINED`: Value used for undefined namespaces
+- <a name="const-default-stack-level"></a>`DEFAULT_STACK_LEVEL`: Default stack mode of the logger (see [`Options.stack_mode`](./hanpeki-logger-options.md#stack_mode)):
+  ```
+  {
+    HanpekiLogger.FATAL: StackLevelConfig.FULL,
+    HanpekiLogger.ERROR: StackLevelConfig.ORIGIN,
+    HanpekiLogger.WARN: StackLevelConfig.ORIGIN_IF_DEBUG,
+  }
+  ```
 
 ## <a name="enums"></a> Enums
 
@@ -22,8 +30,9 @@ List of global enum values available in [`HanpekiLogger`](#class-hanpeki-logger)
 
 ### enum StackLevelConfig
 
-Values that can be provided via [`HanpekiLogger.Transport.Options`](./hanpeki-logger-transport-options.md).
+Values that can be provided via [`HanpekiLogger.Options.stack_mode`](./hanpeki-logger-options.md#stack_mode) and [`HanpekiLogger.Transport.Options.stack_mode`](./hanpeki-logger-transport-options.md#stack_mode).
 
+- <a name="enum-stacklevelconfig-inherit"></a> `INHERIT`: only valid for transports. Uses the stack mode of the logger the transport is attached to.
 - <a name="enum-stacklevelconfig-none"></a> `NONE`: stack is always disabled regardless of the environment.
 - <a name="enum-stacklevelconfig-origin"></a> `ORIGIN`: stack is always displayed as only the origin of the log call (when available)
 - <a name="enum-stacklevelconfig-full"></a> `FULL`: stack is always displayed as the full stack from the line that made the log call
@@ -96,6 +105,18 @@ Set the given `level` `enabled` or `disabled`
 
 Set every level greater or equal to the given `level` as enabled, and disable the rest.
 
+### <a name="set_stack_mode"></a> set_stack_mode
+
+> **set_stack_mode(config: [StackLevelConfig](#enum-stacklevelconfig) | Dictionary[[int](https://docs.godotengine.org/en/4.6/classes/class_int.html), [StackLevelConfig](#enum-stacklevelconfig)]) → void**
+
+Set the default stack mode for the transports inheriting it ([`StackLevelConfig.INHERIT`](#enum-stacklevelconfig-inherit), which is their default), for all levels or per level. Levels not included in a per-level configuration won't provide any stack for those transports.
+
+Transports with their own stack mode override it, either displaying more or less stack information (see [`Transport.Options.stack_mode`](./hanpeki-logger-transport-options.md#stack_mode)). Note that this is different from levels, where the logger acts as a limit for the transports.
+
+[`StackLevelConfig.INHERIT`](#enum-stacklevelconfig-inherit) is not valid here, as there's nothing to inherit from.
+
+Note that the stack is only retrieved for the levels where at least one of the attached transports is going to display it.
+
 ### <a name="add_transport"></a> add_transport
 
 > **add_transport(transport: [Transport](./hanpeki-logger-transport.md))) → void**
@@ -103,6 +124,16 @@ Set every level greater or equal to the given `level` as enabled, and disable th
 Add a [Transport](./hanpeki-logger-transport.md) instance to be used by the logger.
 
 It can be one of the provided ones or a custom one.
+
+A transport can only be attached to one logger at a time. Use [`remove_transport`](#remove_transport) before adding it to a different one.
+
+### <a name="remove_transport"></a> remove_transport
+
+> **remove_transport(transport: [Transport](./hanpeki-logger-transport.md)) → [bool](https://docs.godotengine.org/en/4.6/classes/class_bool.html)**
+
+Remove a previously added [Transport](./hanpeki-logger-transport.md) instance, so it doesn't process any more messages from this logger.
+
+Returns `false` if the transport was not attached to this logger.
 
 ### <a name="bind_ns"></a> bind_ns
 

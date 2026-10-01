@@ -16,9 +16,9 @@ A `Transport` is an abstract class defining the interface for specifying how mes
 
 ### <a name="enum-stack-level-mode"></a> enum StackLevelMode
 
-`StackLevelMode` defines the possible values to pass via [`Transport.Options`](./hanpeki-logger-transport-options.md) to the pre-defined [`Transport`](./hanpeki-logger-transport.md) instances. Custom transports can follow how they are implemented and reuse this values for consistency, or provide their own implementations when displaying stack traces (if needed).
+`StackLevelMode` defines how the stack is displayed in the current environment. It's the result of evaluating the [`StackLevelConfig`](./hanpeki-logger.md#enum-stacklevelconfig) values provided via [`Transport.Options.stack_mode`](./hanpeki-logger-transport-options.md#stack_mode), and it's used by the pre-defined [`Transport`](./hanpeki-logger-transport.md) instances when displaying stack traces. Custom transports can follow how they are implemented and reuse this values for consistency, or provide their own implementations when displaying stack traces (if needed).
 
-- <a name="inherit"></a> `INHERIT`: Special level to be used by transports to use the logger level.
+- <a name="inherit"></a> `INHERIT`: Uses the stack mode of the logger the transport is attached to. Result of evaluating [`StackLevelConfig.INHERIT`](./hanpeki-logger.md#enum-stacklevelconfig-inherit).
 - <a name="none"></a> `NONE`: Include no stack information.
 - <a name="origin"></a> `ORIGIN`: Only provide the origin (where the log was called from). Note that this is only possible if the stack information is available.
 - <a name="full"></a> `FULL`: Provide the full stack. Note that this is only possible if the stack information is available.

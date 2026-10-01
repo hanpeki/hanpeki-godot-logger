@@ -30,7 +30,7 @@ func process(data: HanpekiLogger.MsgData) -> void:
 
 
 func set_options(options: Transport.Options) -> void:
-	## Godot OOP is not the best...
+	# Godot OOP is not the best...
 	assert(
 		options is Options,
 		"HanpekiLoggerAssertTransport.setOptions requires HanpekiLoggerAssertTransport.Options"
@@ -53,3 +53,7 @@ class Options:
 	extends Transport.Options
 	## Union of the log levels that will call [code]assert(false, data.msg)[/code]
 	var assert_levels: int = HanpekiLogger.ERROR | HanpekiLogger.FATAL
+
+	func _init() -> void:
+		# This transport doesn't display the stack, so it shouldn't make the logger retrieve it
+		stack_mode = HanpekiLogger.StackLevelConfig.NONE

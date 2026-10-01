@@ -14,7 +14,9 @@ Name of the message level.
 
 ## <a name="time"></a> time: [int](https://docs.godotengine.org/en/4.6/classes/class_int.html)
 
-Unix time (ellapsed seconds from 1970).
+Unix time (elapsed seconds from 1970).
+
+To avoid reading the system clock on every message, it's calculated from [`utime`](#utime) and the Unix time when the app started. This keeps the time between messages consistent, but changes in the system clock while the app is running (e.g. NTP sync or DST changes) won't be reflected.
 
 ## <a name="utime"></a> utime: [int](https://docs.godotengine.org/en/4.6/classes/class_int.html)
 

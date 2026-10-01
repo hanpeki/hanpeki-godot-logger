@@ -22,8 +22,24 @@ List of active levels. Any other level will be disabled.
 
 Each level can be provided as the [`int`](https://docs.godotengine.org/en/4.6/classes/class_int.html) value or the level name (case-insensitive).
 
-Leave empty to use only [`levels`](#levels) or the default levels.
+Leave empty to use only [`level`](#level) or the default levels.
 
-## <a name="disable_stack"></a> disable_stack: [`StackLevelConfig`](./hanpeki-logger.md#enum-stacklevelconfig) | Dictionary[[int](https://docs.godotengine.org/en/4.6/classes/class_int.html), [`StackLevelConfig`](./hanpeki-logger.md#enum-stacklevelconfig)]
+## <a name="stack_mode"></a> stack_mode: [`StackLevelConfig`](./hanpeki-logger.md#enum-stacklevelconfig) | Dictionary[[int](https://docs.godotengine.org/en/4.6/classes/class_int.html), [`StackLevelConfig`](./hanpeki-logger.md#enum-stacklevelconfig)]
 
-Whether to include the stack of the log call in the data passed to the transports.
+Default stack mode for the transports inheriting it (which is their default), applied with [`HanpekiLogger.set_stack_mode`](./hanpeki-logger.md#set_stack_mode). Levels not included in a per-level configuration won't provide any stack for those transports.
+
+Can be provided both as [`StackLevelConfig`](./hanpeki-logger.md#enum-stacklevelconfig) (same for all levels), or per-level via `Dictionary[int, StackLevelConfig]`.
+
+Transports with their own stack mode override it, either displaying more or less stack information (see [`Transport.Options.stack_mode`](./hanpeki-logger-transport-options.md#stack_mode)). Note that this is different from levels, where the logger acts as a limit for the transports.
+
+Leave to `null` to keep the current one. New instances use [`DEFAULT_STACK_LEVEL`](./hanpeki-logger.md#const-default-stack-level):
+
+```
+{
+  HanpekiLogger.FATAL: StackLevelConfig.FULL,
+  HanpekiLogger.ERROR: StackLevelConfig.ORIGIN,
+  HanpekiLogger.WARN: StackLevelConfig.ORIGIN_IF_DEBUG,
+}
+```
+
+Note that the stack is only available in release builds when the project setting `debug/settings/gdscript/always_track_call_stacks` is enabled. Otherwise, messages logged from release builds won't include any stack information, regardless of this configuration. _See [`get_stack`](https://docs.godotengine.org/en/4.5/classes/class_@gdscript.html#class-gdscript-method-get-stack) for details\_.

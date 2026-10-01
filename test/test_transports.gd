@@ -90,13 +90,13 @@ func test_move_transport() -> void:
 ##
 func test_remove_transport_recalculates_stack() -> void:
 	var instance = HanpekiLogger.create()
-	# Default transport options provide the stack for some levels
+	# Default transport options inherit the stack mode of the logger
 	var transport = HanpekiLoggerTestTransport.create()
 	instance.add_transport(transport)
-	assert_typeof(instance._provide_stack, TYPE_DICTIONARY)
+	assert_true(instance._stack_needed.has(HanpekiLogger.FATAL))
 
 	instance.remove_transport(transport)
-	assert_false(instance._provide_stack)
+	assert_false(instance._stack_needed.has(HanpekiLogger.FATAL))
 
 
 ##
