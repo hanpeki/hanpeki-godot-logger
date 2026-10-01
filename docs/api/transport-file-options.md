@@ -4,12 +4,10 @@
 
 Stores the options to create instances of the `HanpekiLoggerFileTransport` class.
 
-
-## <a name="file-path"></a> file_path: [String](https://docs.godotengine.org/en/4.5/classes/class_string.html)
+## <a name="file-path"></a> file_path: [String](https://docs.godotengine.org/en/4.6/classes/class_string.html)
 
 Path to use for the file to write to, relative to `user://`.
 
 Defaults to `"logs/{DATETIME}.txt"`.
 
 The `{DATETIME}` placeholder is available, being replaced with the date and time as `YYYY-MM-DD_hh.mm.ss` when the file is created (parent folders will be created too if not existing already).
-

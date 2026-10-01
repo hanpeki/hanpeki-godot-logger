@@ -59,8 +59,8 @@ func _get_stack_data(current_test_name):
 			stackTrace.remove_at(0)
 
 	return {
-		"test_entry" = test_entry,
-		"full_stack" = stackTrace
+		"test_entry": test_entry,
+		"full_stack": stackTrace
 	}
 
 
@@ -84,7 +84,6 @@ func _is_error_failable(error : GutTrackedError):
 func _log_error(function: String, file: String, line: int,
 	code: String, rationale: String, editor_notify: bool,
 	error_type: int, script_backtraces: Array[ScriptBacktrace]) -> void:
-
 		add_error(function, file, line,
 			code, rationale, editor_notify,
 			error_type, script_backtraces)
