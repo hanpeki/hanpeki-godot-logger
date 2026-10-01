@@ -22,6 +22,8 @@ List of active levels. Any other level will be disabled.
 
 Each level can be provided as the [`int`](https://docs.godotengine.org/en/4.6/classes/class_int.html) value or the level name (case-insensitive).
 
+[`NONE`](./hanpeki-logger.md#enum-none) is accepted but doesn't enable any level, so `[HanpekiLogger.NONE]` can be used to disable every level.
+
 Leave empty to use only [`level`](#level) or the default levels.
 
 ## <a name="stack_mode"></a> stack_mode: [`StackLevelConfig`](./hanpeki-logger.md#enum-stacklevelconfig) | Dictionary[[int](https://docs.godotengine.org/en/4.6/classes/class_int.html), [`StackLevelConfig`](./hanpeki-logger.md#enum-stacklevelconfig)]

@@ -131,22 +131,26 @@ func set_options(options: HanpekiLogger.Options) -> void:
 			continue
 		register_level(entry.level, entry.name)
 
-	if options.level:
-		enable_levels_from(options.level)
+	if options.level != null:
+		var level = _resolve_level(options.level)
+		if level == null:
+			assert(false, 'unknown level in "level"')
+		else:
+			enable_levels_from(level)
 
-	# set levels only when provided (NONE can be provided explicitly)
+	# set levels only when provided (NONE can be provided explicitly to disable every level)
 	# if no levels are given, the defaults are kept
 	if options.levels.size() > 0:
-		if !options.level:
+		if options.level == null:
 			_level = NONE
 		for entry in options.levels:
-			var level = null
-			if typeof(entry) == TYPE_INT:
-				level = entry
-			elif typeof(entry) == TYPE_STRING:
-				level = get_level_from_name(entry)
+			var level = _resolve_level(entry)
 			if level == null:
 				assert(false, 'unknown level in "levels"')
+				continue
+			# NONE is accepted, but it doesn't enable any level
+			if level == NONE:
+				continue
 			set_level(level, true)
 
 	if options.stack_mode != null:
@@ -221,7 +225,10 @@ func deregister_level(level: int) -> void:
 ## Sets the given [param level] as [param enabled] or not
 ##
 func set_level(level: int, enabled: bool) -> void:
-	assert(_is_valid_level(level), "Trying to set an invalid level")
+	assert(
+		level == NONE || level == MAX_LEVEL || _is_valid_level(level),
+		"Trying to set an invalid level"
+	)
 	assert(_registered_levels & level != NONE, "Trying to set an unregistered level")
 	if enabled:
 		_level |= level
@@ -398,13 +405,29 @@ func message(level: int, msg: String, ns: StringName = NS_UNDEFINED) -> void:
 
 
 ##
-## Check if a level is valid
+## Converts a level given as an [int], or as its name ([String] or [StringName],
+## case-insensitive) into its [int] value.
+## Ints are returned as they are, to be validated by the method using them (as some of them accept
+## special values like [enum NONE]). Returns [code]null[/code] for unknown names or other types.
 ##
-static func _is_valid_level(level: int, custom: bool = false) -> bool:
+func _resolve_level(value: Variant) -> Variant:
+	var type = typeof(value)
+	if type == TYPE_INT:
+		return value
+	if type == TYPE_STRING || type == TYPE_STRING_NAME:
+		return get_level_from_name(value)
+	return null
+
+
+##
+## Check if a [param level] is valid.
+## If [param require_custom] is true, the level can't be one of the predefined ones.
+##
+static func _is_valid_level(level: int, require_custom: bool = false) -> bool:
 	# must be power of two
 	if (level & (level - 1)) != 0:
 		return false
-	if custom:
+	if require_custom:
 		# custom levels must be in a valid range
 		return level > FATAL && level < MAX_LEVEL
 		# in any case, they should be positive
@@ -483,6 +506,8 @@ class Options:
 	var level: Variant
 	## List of active levels. Any other level will be disabled
 	## Each level can be provided as the int value or the level name (case-insensitive)
+	## [enum NONE] is accepted but doesn't enable any level, so [code][NONE][/code] can be used
+	## to disable every level
 	## Leave empty to use only [code]level[/code] or the default levels
 	var levels: Array[Variant]
 	## Default stack mode for the transports inheriting it, applied with
