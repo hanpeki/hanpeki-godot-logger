@@ -6,6 +6,7 @@ Main class providing the logging functionalities. Usually it would be provided a
 
 - `VERSION`: Version of the library
 - <a name="const-ns-undefined"></a>`NS_UNDEFINED`: Value used for undefined namespaces
+- <a name="const-predefined-levels"></a>`PREDEFINED_LEVELS`: Union of the predefined levels (`DEBUG`, `INFO`, `CORE`, `WARN`, `ERROR` and `FATAL`), which can't be deregistered.
 - <a name="const-default-stack-level"></a>`DEFAULT_STACK_LEVEL`: Default stack mode of the logger (see [`Options.stack_mode`](./hanpeki-logger-options.md#stack_mode)):
   ```
   {
@@ -20,13 +21,14 @@ Main class providing the logging functionalities. Usually it would be provided a
 List of global enum values available in [`HanpekiLogger`](#class-hanpeki-logger):
 
 - <a name="enum-inherit"></a> `INHERIT`: Special level to be used by transports to use the logger level.
-- <a name="enum-none"></a> `NONE`: The lowest level, only used for set the Logger silent
+- <a name="enum-none"></a> `NONE`: Not a level itself. Enables every level when used with [`enable_levels_from`](#enable_levels_from), or none when it's the only value in [`Options.levels`](./hanpeki-logger-options.md#levels).
 - <a name="enum-debug"></a> `DEBUG`: Debug messages
 - <a name="enum-info"></a> `INFO`: Informational messages to follow the code flow
 - <a name="enum-core"></a> `CORE`: Important messages but not warning nor errors
 - <a name="enum-warn"></a> `WARN`: Unexpected, but non-breaking happenings
 - <a name="enum-error"></a> `ERROR`: Unexpected happening that might break parts when not handled
 - <a name="enum-fatal"></a> `FATAL`: Only used for errors that make the app crash
+- <a name="enum-max-level"></a> `MAX_LEVEL`: Maximum level (`2^62`), just for reference. Custom levels must be lower than it. It can be used with [`enable_levels_from`](#enable_levels_from) to disable every level.
 
 ### enum StackLevelConfig
 
@@ -81,7 +83,7 @@ Get the name `level` as the registered [String](https://docs.godotengine.org/en/
 
 Register a `level` from its numeric value and the name to display.
 
-`level` must be a positive power of two that hasn't been registered before and less than `2^63`.
+`level` must be a positive power of two that hasn't been registered before and lower than [`MAX_LEVEL`](#enum-max-level) (`2^62`). The `name` must be unique (case-insensitive).
 
 This approach allows granularity when deciding what level to enable or disable (i.e. `DEBUG` and `ERROR`) via [`set_level`](#set_level) instead of the usual way which sets the minimum level and everything over it (which is also possible via [`enable_levels_from`](#enable_levels_from)).
 
@@ -91,7 +93,9 @@ Since the pre-defined levels are not consecutive, custom levels can be registere
 
 > **deregister_level(level: [int](https://docs.godotengine.org/en/4.6/classes/class_int.html)) → void**
 
-Deregister a previously registered `level`.
+Deregister a previously registered custom `level`.
+
+Predefined levels ([`PREDEFINED_LEVELS`](#const-predefined-levels)) can't be deregistered, as they are used by the built-in methods ([`debug`](#debug), [`info`](#info), etc.).
 
 ### <a name="set_level"></a> set_level
 

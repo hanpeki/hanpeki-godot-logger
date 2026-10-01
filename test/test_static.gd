@@ -78,7 +78,11 @@ func test_is_valid_level():
 	assert_true(HanpekiLogger._is_valid_level(2 << 4))
 	assert_true(HanpekiLogger._is_valid_level(2 << 15))
 	assert_true(HanpekiLogger._is_valid_level(2 << 45))
-	assert_true(HanpekiLogger._is_valid_level(2 << 61))
+	assert_true(HanpekiLogger._is_valid_level(2 << 60))
+
+	# MAX_LEVEL (2^62) is reserved, so it's not a valid level
+	assert_false(HanpekiLogger._is_valid_level(2 << 61))
+	assert_false(HanpekiLogger._is_valid_level(HanpekiLogger.MAX_LEVEL))
 
 	# Negative numbers are not valid levels
 	assert_false(HanpekiLogger._is_valid_level(-1))
