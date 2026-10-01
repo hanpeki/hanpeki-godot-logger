@@ -6,12 +6,13 @@ class_name HanpekiLoggerFileTransport extends HanpekiLogger.Transport
 
 const DEFAULT_FILE_PATH = "logs/{DATETIME}.txt"
 
-## List of opened filed descriptors
-## This is kept to avoid problems by opening two descriptors to the same file in case
-## multiple HanpekiLoggerFileTransport were used by any reason
-static var _files: Dictionary[String, FileAccess] = {}
+## Opened files, by their final path, so they are shared when multiple
+## HanpekiLoggerFileTransport write into the same file (avoiding opening it twice).
+## They are stored as [WeakRef] so the cache doesn't keep them open: each [FileAccess] is closed
+## automatically when the last transport using it is freed (or changes its file).
+static var _files: Dictionary[String, WeakRef] = {}
 
-## File descriptor to use
+## File to write into ([code]null[/code] if it couldn't be opened)
 var _file: FileAccess
 
 
@@ -57,21 +58,35 @@ func _init(options: Options) -> void:
 
 ##
 ## Get the [FileAccess] given the [param file_path]. This allows reusing them
-## if multiple Transports are writing into the same file
+## if multiple Transports are writing into the same file.
+## Returns [code]null[/code] (reporting the error) if the file can't be opened.
 ##
 static func _get_file(file_path: String) -> FileAccess:
 	var final_file_path = _get_file_path(file_path)
-	if _files.has(final_file_path):
-		return _files[final_file_path]
-	var file = FileAccess.open(final_file_path, FileAccess.WRITE)
-	_files[final_file_path] = file
+	var file = _files[final_file_path].get_ref() if _files.has(final_file_path) else null
+	if file:
+		return file
+
+	file = FileAccess.open(final_file_path, FileAccess.WRITE)
+	if !file:
+		push_error(
+			(
+				'HanpekiLoggerFileTransport can\'t open the log file "%s": %s'
+				% [final_file_path, error_string(FileAccess.get_open_error())]
+			)
+		)
+		# Not cached, so it's retried the next time
+		_files.erase(final_file_path)
+		return null
+
+	_files[final_file_path] = weakref(file)
 	return file
 
 
 ##
 ## - Replace placeholders
 ##   - {DATETIME}
-## - Pre-pend "user://" if not available
+## - Pre-pend "user://" for relative paths (absolute ones, like "res://" or OS paths, are kept)
 ## - Creates the parent folder if it doesn't exist
 ## Returns the filepath for the log file
 ##
@@ -85,33 +100,17 @@ static func _get_file_path(filepath: String) -> String:
 		)
 		res = res.replace("{DATETIME}", datetime)
 
-	var folder_path = _dirname(
-		res.substr("user://".length()) if (res.begins_with("user://")) else res
-	)
-	if folder_path != "":
-		DirAccess.make_dir_recursive_absolute("user://" + folder_path)
+	if res.is_relative_path():
+		res = "user://" + res
 
-	return res if res.begins_with("user://") else "user://" + res
-
-
-##
-## posix dirname.
-## Returns the directory for the given [param path]
-## [code]dirname('a/b/c') # -> 'a/b'[/code]
-##
-static func _dirname(path: String) -> String:
-	var i = path.rfind("/")
-	if i == -1:
-		return ""
-	return path.substr(0, i)
-
-
-func _notification(what):
-	if what == NOTIFICATION_PREDELETE:
-		_file.close()
+	DirAccess.make_dir_recursive_absolute(res.get_base_dir())
+	return res
 
 
 class Options:
 	extends Transport.Options
-	## Path to use for the file to write to
+	## Path to use for the file to write to.
+	## Relative paths are relative to [code]user://[/code], while absolute ones
+	## ([code]user://[/code], [code]res://[/code] or OS paths) are used as they are.
+	## Note that [code]res://[/code] is read-only in exported projects.
 	var file_path: String = DEFAULT_FILE_PATH
