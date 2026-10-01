@@ -4,10 +4,8 @@
 
 Stores the options to create instances of the `HanpekiLoggerConsoleTransport` class.
 
-
-## <a name="formatting"></a> formatting: [bool](https://docs.godotengine.org/en/4.5/classes/class_bool.html)
+## <a name="formatting"></a> formatting: [bool](https://docs.godotengine.org/en/4.6/classes/class_bool.html)
 
 Whether to use formatting or not.
 
 Defaults to `true`. When `false`, this transport will output plain text ignoring the defined format.
-

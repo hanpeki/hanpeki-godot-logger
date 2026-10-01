@@ -2,7 +2,6 @@
 
 A `Transport` is an abstract class defining the interface for specifying how messages sent to the logger should be handled.
 
-
 ## Enums
 
 ### <a name="enum-time-format"></a> enum TimeFormat
@@ -28,29 +27,26 @@ A `Transport` is an abstract class defining the interface for specifying how mes
 
 ### <a name="set_options"></a> set_options
 
->**set_options(options: [Options](./hanpeki-logger-transport-options.md)) → void**
+> **set_options(options: [Options](./hanpeki-logger-transport-options.md)) → void**
 
 Apply a `options` object.
 
-
 ### <a name="set_level"></a> set_level
 
->**set_level(level: [int](https://docs.godotengine.org/en/4.5/classes/class_int.html), enabled: [bool](https://docs.godotengine.org/en/4.5/classes/class_bool.html)) → void**
+> **set_level(level: [int](https://docs.godotengine.org/en/4.6/classes/class_int.html), enabled: [bool](https://docs.godotengine.org/en/4.6/classes/class_bool.html)) → void**
 
 Level to use by this `Transport` independently from the one set in the logger.
 
 Note that it works as an **AND** operation. If the logger has a level disabled, the messages won't reach the `Transport`, so this is used mainly to disable levels in the `Transport`.
 
-
 ### <a name="set_time_format"></a> set_time_format
 
->**set_time_format(time_format: [TimeFormat](#enum-time-format)) → void**
+> **set_time_format(time_format: [TimeFormat](#enum-time-format)) → void**
 
 Set how to format the time displayed in the messages logged by this transport.
 
-
 ### <a name="process"></a> abstract process
 
->**process(_data: [MsgData](./hanpeki-logger-msg-data.md)) → void**
+> **process(\_data: [MsgData](./hanpeki-logger-msg-data.md)) → void**
 
 Method called when the transport needs to log an already "_parsed_" message. Extending classes must implement it.
