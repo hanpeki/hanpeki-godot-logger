@@ -238,6 +238,19 @@ func add_transport(transport: Transport) -> void:
 
 
 ##
+## Removes a registered transport.
+## Providing an unknown transport will return false, but won't throw an error.
+##
+func remove_transport(transport: Transport) -> bool:
+	var i = _transports.find(transport)
+	if i == -1:
+		return false
+	_transports.remove_at(i)
+	transport._logger = null
+	_recalculate_is_stack_needed()
+	return true
+
+##
 ## Returns a [HanpekiLogger] with the [param ns] namespace bound, where logging the methods
 ## don't need the [code]ns[/code] parameter anymore as they will use the provided [param ns]
 ##
