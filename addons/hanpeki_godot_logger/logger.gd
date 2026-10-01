@@ -221,12 +221,34 @@ func enable_levels_from(level: int) -> void:
 ##
 ## Adds a transport to process the messages. Messages will be provided to
 ## transports in the order they are added.
+## A transport can only be attached to one logger at a time. Use [method remove_transport]
+## before adding it to a different one.
 ##
 func add_transport(transport: Transport) -> void:
-	transport._logger = self
+	var current = transport._logger.get_ref() if transport._logger else null
+	if current == self:
+		assert(false, "Trying to add a transport that was already added to this logger")
+		return
+	if current:
+		assert(false, "Trying to add a transport that is already attached to another logger")
+		return
+	transport._logger = weakref(self)
 	_transports.append(transport)
 	_recalculate_is_stack_needed()
 
+
+##
+## Removes a registered transport.
+## Providing an unknown transport will return false, but won't throw an error.
+##
+func remove_transport(transport: Transport) -> bool:
+	var i = _transports.find(transport)
+	if i == -1:
+		return false
+	_transports.remove_at(i)
+	transport._logger = null
+	_recalculate_is_stack_needed()
+	return true
 
 ##
 ## Returns a [HanpekiLogger] with the [param ns] namespace bound, where logging the methods
@@ -456,8 +478,8 @@ class Transport:
 	var _time_bias: int
 	## StackLevelMode | Dictionary[int, StackLevelMode]
 	var _stack_mode: Variant = DEFAULT_STACK_LEVEL
-	## Associated logger instance when attached (HanpekiLogger | null)
-	var _logger: Variant = null
+	## Associated logger instance when attached (WeakRef | null)
+	var _logger: WeakRef = null
 
 	##
 	## Apply an [param options] object
@@ -469,8 +491,9 @@ class Transport:
 			if options == null
 			else options.time_format
 		)
-		if _logger:
-			(_logger as HanpekiLogger)._recalculate_is_stack_needed()
+		var logger = _logger.get_ref() if _logger else null
+		if logger:
+			(logger as HanpekiLogger)._recalculate_is_stack_needed()
 		_stack_mode = _eval_provide_stack(options.stack_mode)
 
 	##
