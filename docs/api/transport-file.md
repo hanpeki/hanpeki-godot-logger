@@ -7,6 +7,6 @@ Pre-defined [HanpekiLogger.Transport](./hanpeki-logger-transport.md) to log mess
 
 ### <a name="static-create"></a> static create
 
->**static func create(options: [Options](./transport-file-options.md)) → [HanpekiLoggerFileTransport](#class-hanpeki-logger-file-transport)**
+> **static func create(options: [Options](./transport-file-options.md) = null) → [HanpekiLoggerFileTransport](#class-hanpeki-logger-file-transport)**
 
-Returns a new instance of [`HanpekiLoggerFileTransport`](#class-hanpeki-logger-file-transport) created with the provided (required) `options`.
+Returns a new instance of [`HanpekiLoggerFileTransport`](#class-hanpeki-logger-file-transport) created with the provided (optional) `options`.

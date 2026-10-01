@@ -12,11 +12,11 @@ A `Transport` is an abstract class defining the interface for specifying how mes
 - <a name="enum-system-date-time"></a>`SYSTEM_DATE_TIME`: Formats the date and the time as the local system time.
 - <a name="enum-utc-time"></a>`UTC_TIME`: Formats the time as the UTC time.
 - <a name="enum-utc-date-time"></a>`UTC_DATE_TIME`: Formats the time as the UTC date and time.
-- <a name="enum-relative"></a>`RELATIVE`: Formats the time as the ellapsed time since the game started.
+- <a name="enum-relative"></a>`RELATIVE`: Formats the time as the elapsed time since the game started.
 
 ### <a name="enum-stack-level-mode"></a> enum StackLevelMode
 
-`StackLevelMode` defines how the stack is displayed in the current environment. It's the result of evaluating the [`StackLevelConfig`](./hanpeki-logger.md#enum-stacklevelconfig) values provided via [`Transport.Options.stack_mode`](./hanpeki-logger-transport-options.md#stack_mode), and it's used by the pre-defined [`Transport`](./hanpeki-logger-transport.md) instances when displaying stack traces. Custom transports can follow how they are implemented and reuse this values for consistency, or provide their own implementations when displaying stack traces (if needed).
+`StackLevelMode` defines how the stack is displayed in the current environment. It's the result of evaluating the [`StackLevelConfig`](./hanpeki-logger.md#enum-stacklevelconfig) values provided via [`HanpekiLogger.Options.stack_mode`](./hanpeki-logger-options.md#stack_mode) and [`Transport.Options.stack_mode`](./hanpeki-logger-transport-options.md#stack_mode), and it's used by the pre-defined [`Transport`](./hanpeki-logger-transport.md) instances when displaying stack traces. Custom transports can follow how they are implemented and reuse this values for consistency, or provide their own implementations when displaying stack traces (if needed).
 
 - <a name="inherit"></a> `INHERIT`: Uses the stack mode of the logger the transport is attached to. Result of evaluating [`StackLevelConfig.INHERIT`](./hanpeki-logger.md#enum-stacklevelconfig-inherit).
 - <a name="none"></a> `NONE`: Include no stack information.
@@ -29,7 +29,9 @@ A `Transport` is an abstract class defining the interface for specifying how mes
 
 > **set_options(options: [Options](./hanpeki-logger-transport-options.md)) → void**
 
-Apply a `options` object.
+Apply an `options` object. Providing `null` resets the default options.
+
+Transports extending this class with their own options need to override it, calling `super.set_options(options)` and then applying their own options.
 
 ### <a name="set_level"></a> set_level
 

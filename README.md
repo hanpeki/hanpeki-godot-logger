@@ -9,14 +9,15 @@
 ## Features
 
 - ☑ Configurable logging system
-- ☑ Console and file transports provided by default
+- ☑ Console, file and assert transports provided by default
 - ☑ Customizable and extensible transports
 - ☑ Support for custom log levels
 - ☑ Flexible, non-linear log levels
 - ☑ Dedicated namespaces
-- ☑ Per-level and per-namespace configuration
+- ☑ Per-level, per-namespace and per-transport configuration
+- ☑ Configurable stack traces per level and transport
 
-Check the [API documentation here](./docs/README.md), set [example code here](./examples/README.md), or keep reading for an introduction.
+Check the [API documentation here](./docs/README.md), see [example code here](./examples/README.md), or keep reading for an introduction.
 
 ### What is a transport?
 
@@ -26,6 +27,7 @@ For example:
 
 - When a log event is triggered, `HanpekiLoggerConsoleTransport` decides how to display it in the console.
 - `HanpekiLoggerFileTransport` writes the log event to a file.
+- `HanpekiLoggerAssertTransport` stops the execution (via `assert`) on the configured levels, which is useful while developing.
 
 `HanpekiLogger` lets you customize these transports or define new ones with custom formats and outputs (e.g. sending logs to a remote service like Sentry).
 
@@ -65,29 +67,32 @@ class_name Log
 static var instance: HanpekiLogger
 
 # Logger bound to the "UI" namespace
-static var ui: HanpekiLogger.WithBindedNs
+static var ui: HanpekiLogger.WithBoundNs
 # Logger bound to the "ScriptManager" namespace
-static var scriptManager: HanpekiLogger.WithBindedNs
+static var scriptManager: HanpekiLogger.WithBoundNs
 
 
+# Call it once when the game starts (i.e. from the main scene or an autoload)
 static func init() -> void:
-  var options = HanpekiLogger.Options.new()
-  # Don't log debug and info messages by default
-  options.levels = ["fatal", "error", "warn"]
-  instance = HanpekiLogger.create(options)
+	var options = HanpekiLogger.Options.new()
+	# Don't log debug messages
+	# Levels can be provided by their names (case-insensitive) or values (HanpekiLogger.INFO)
+	options.levels = ["fatal", "error", "warn", "info"]
+	instance = HanpekiLogger.create(options)
 
-  # Enable logging to the console
-  instance.add_transport(HanpekiLoggerConsoleTransport.create())
+	# Enable logging to the console
+	instance.add_transport(HanpekiLoggerConsoleTransport.create())
 
-  # Enable logging to a file
-  instance.add_transport(HanpekiLoggerFileTransport.create())
+	# Enable logging to a file (by default in "user://logs/")
+	instance.add_transport(HanpekiLoggerFileTransport.create())
 
-  # Initialize the logger with namespaces
-  ui = instance.bind_ns(&"UI")
-  scriptManager = instance.bind_ns(&"ScriptManager")
+	# Initialize the logger with namespaces
+	ui = instance.bind_ns(&"UI")
+	scriptManager = instance.bind_ns(&"ScriptManager")
 
-  # Enable the "info" level only for the ScriptManager namespace
-  scriptManager.enable_level(HanpekiLogger.INFO, true)
+	# Disable the "info" level only for the UI namespace
+	# Note that namespaces can only disable levels enabled in the logger, not enable new ones
+	ui.set_level(HanpekiLogger.INFO, false)
 
 ```
 
@@ -97,20 +102,22 @@ static func init() -> void:
 #
 
 # Simple messages without namespace can be logged like this
-Log.instance.debug("Message without namespace")
-# Or provideing namespaces manually
-Log.instance.debug("Message with namespace", "Namespace")
+Log.instance.info("Message without namespace")
+# Or providing namespaces manually
+Log.instance.info("Message with namespace", &"Namespace")
+# "debug" messages won't appear with the given options
+Log.instance.debug("Debug message")
 
 
 #
 # From some UI menu
 #
 
-# The "info" message won't appear with the given options
+# The "info" message won't appear, as it's disabled for this namespace
 Log.ui.info("Options menu opened")
 
 if (something_bad_happened):
-  Log.ui.error("Oh no! Something bad happened")
+	Log.ui.error("Oh no! Something bad happened")
 ```
 
 ```gdscript
@@ -122,6 +129,15 @@ Log.scriptManager.warn("There's no previous state!")
 # The "debug" message won't appear either
 Log.scriptManager.debug("Initializing default states")
 
-# But "info" messages will do just for this namespace!
+# But "info" messages will, as they are only disabled for the UI namespace
 Log.scriptManager.info("States initialized")
 ```
+
+### More configuration
+
+- **Custom levels** can be registered with `register_level` (or `Options.custom_levels`). Since the predefined levels are not consecutive powers of two, custom ones can be placed between them.
+- **Transports** have their own options (levels, time format, stack traces...) and can be added or removed at any time with `add_transport` / `remove_transport`.
+- **Stack traces** are configured per level in the logger (`Options.stack_mode`), and each transport inherits it by default or overrides it with its own `stack_mode`.
+- **File logs** are flushed periodically (`flush_interval_ms`) and right away for errors (`flush_levels`) to balance performance and safety.
+
+Check the [API documentation](./docs/README.md) for the details.

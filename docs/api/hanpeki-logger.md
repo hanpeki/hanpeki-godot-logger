@@ -30,7 +30,7 @@ List of global enum values available in [`HanpekiLogger`](#class-hanpeki-logger)
 - <a name="enum-fatal"></a> `FATAL`: Only used for errors that make the app crash
 - <a name="enum-max-level"></a> `MAX_LEVEL`: Maximum level (`2^62`), just for reference. Custom levels must be lower than it. It can be used with [`enable_levels_from`](#enable_levels_from) to disable every level.
 
-### enum StackLevelConfig
+### <a name="enum-stacklevelconfig"></a> enum StackLevelConfig
 
 Values that can be provided via [`HanpekiLogger.Options.stack_mode`](./hanpeki-logger-options.md#stack_mode) and [`HanpekiLogger.Transport.Options.stack_mode`](./hanpeki-logger-transport-options.md#stack_mode).
 
@@ -48,6 +48,7 @@ Values that can be provided via [`HanpekiLogger.Options.stack_mode`](./hanpeki-l
 - [`Options`](./hanpeki-logger-options.md)
 - [`MsgData`](./hanpeki-logger-msg-data.md)
 - [`Transport`](./hanpeki-logger-transport.md)
+- [`WithBoundNs`](./hanpeki-logger-with-bound-ns.md)
 
 ## Static methods
 
@@ -73,9 +74,9 @@ Get the level as [`int`](https://docs.godotengine.org/en/4.6/classes/class_int.h
 
 ### <a name="get_level_name"></a> get_level_name
 
-> **get_level_name(level: [int](https://docs.godotengine.org/en/4.6/classes/class_int.html)) → [String](https://docs.godotengine.org/en/4.6/classes/class_string.html) | null**
+> **get_level_name(level: [int](https://docs.godotengine.org/en/4.6/classes/class_int.html)) → [String](https://docs.godotengine.org/en/4.6/classes/class_string.html)**
 
-Get the name `level` as the registered [String](https://docs.godotengine.org/en/4.6/classes/class_string.html).
+Get the registered name of the given `level`. The `level` must be registered.
 
 ### <a name="register_level"></a> register_level
 
@@ -109,6 +110,11 @@ Set the given `level` `enabled` or `disabled`
 
 Set every level greater or equal to the given `level` as enabled, and disable the rest.
 
+Special values:
+
+- [`NONE`](#enum-none) enables every registered level.
+- [`MAX_LEVEL`](#enum-max-level) disables every level.
+
 ### <a name="set_stack_mode"></a> set_stack_mode
 
 > **set_stack_mode(config: [StackLevelConfig](#enum-stacklevelconfig) | Dictionary[[int](https://docs.godotengine.org/en/4.6/classes/class_int.html), [StackLevelConfig](#enum-stacklevelconfig)]) → void**
@@ -123,7 +129,7 @@ Note that the stack is only retrieved for the levels where at least one of the a
 
 ### <a name="add_transport"></a> add_transport
 
-> **add_transport(transport: [Transport](./hanpeki-logger-transport.md))) → void**
+> **add_transport(transport: [Transport](./hanpeki-logger-transport.md)) → void**
 
 Add a [Transport](./hanpeki-logger-transport.md) instance to be used by the logger.
 
@@ -141,11 +147,11 @@ Returns `false` if the transport was not attached to this logger.
 
 ### <a name="bind_ns"></a> bind_ns
 
-> **bind_ns(ns: [StringName](https://docs.godotengine.org/en/4.6/classes/class_stringname.html)) → [WithBoundNs](./hanpeki-logger-with-bound-ns)**
+> **bind_ns(ns: [StringName](https://docs.godotengine.org/en/4.6/classes/class_stringname.html)) → [WithBoundNs](./hanpeki-logger-with-bound-ns.md)**
 
 Bind a namespace to the logger instance. This will provide logging methods without accepting the second parameter `ns`, and will use instead always the bound one.
 
-Options, levels and transports will be shared with the logger instance.
+Options, levels and transports will be shared with the logger instance. Each bound instance can also disable levels only for its namespace (see [`WithBoundNs.set_level`](./hanpeki-logger-with-bound-ns.md#set_level)).
 
 ### <a name="debug"></a> debug
 

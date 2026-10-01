@@ -71,8 +71,9 @@ func set_level_format(level: int, format: String) -> void:
 
 
 ##
-## Set the format to use when printing a namespace name without an explicit format configured,
-## as a template string accepting BBTags with the [code]{level}[/code] placeholder.
+## Set the format to use when printing a level name without an explicit format configured
+## (usually custom levels), as a template string accepting BBTags with the [code]{level}[/code]
+## placeholder.
 ##
 func set_level_default_format(format: String) -> void:
 	_level_default_format = format
@@ -87,9 +88,8 @@ func set_ns_format(ns: StringName, format: String) -> void:
 
 
 ##
-## Set the format to use when printing a level name without a format configured,
-## (usually custom levels), as a template string accepting BBTags,
-## with the [code]{ns}[/code] placeholder.
+## Set the format to use when printing a namespace name without an explicit format configured,
+## as a template string accepting BBTags, with the [code]{ns}[/code] placeholder.
 ##
 func set_ns_default_format(format: String) -> void:
 	_ns_default_format = format
