@@ -8,7 +8,7 @@
 
 source "$(dirname "$0")/shared"
 
-require_godot
+GODOT=$(require_godot)
 
 PWD=`pwd`
 DIRNAME=`dirname "${BASH_SOURCE[0]}"`

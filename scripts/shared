@@ -42,6 +42,8 @@ COLOR_VERSION=${COLOR_GREEN}
 COLOR_FILE=${COLOR_YELLOW}
 COLOR_DIM=${COLOR_DARK_GRAY}
 COLOR_TAG=${COLOR_PURPLE}
+COLOR_VAR=${COLOR_CYAN}
+COLOR_BIN=${COLOR_CYAN}
 
 # Project root (in case scripts run from a different path)
 if [ -n "${BASH_SOURCE:-}" ]; then
@@ -93,35 +95,140 @@ fail() {
 }
 
 
-# Environment variable $GODOT is required to be set to the exe used to
-# run godot. i.e. /x/path/to/Godot_v4.4-stable_win64.exe
-# Fail if not set
+# Output the path to the Godot executable or fail if not available (or inconsistent with the project
+# version).
+# It's searched in this order:
+#   - The $GODOT environment variable (i.e. /x/path/to/Godot_v4.4-stable_win64.exe)
+#   - `godotTools.editorPath.godot4` from .vscode/settings.json
+#   - `godot` from $PATH
+# The first one that is executable and returns a Godot version
+# (i.e. `4.6.stable.official.89cea1439`) is used
+# Its major.minor version must match the one in project.godot (i.e. `4.6`) or it will fail
+# Usage: GODOT=$(require_godot) && "$GODOT" ...
 require_godot() {
-  if [[ -z "${GODOT}" ]]; then
-    fail "\$GODOT must be set to the Godot executable to use"
+  local vscode_settings="${PROJECT_ROOT}/.vscode/settings.json"
+  local vscode_godot=""
+  local project_version=""
+  local godot version
+
+  # i.e. config/features=PackedStringArray("4.6", "Forward Plus")
+  # Only major.minor is compared, so 4.6, 4.6.0 and 4.6.1 are all compatible
+  project_version=$(sed -n -E 's/^config\/features\s*=\s*PackedStringArray\(\s*"([0-9]+\.[0-9]+)(\.[0-9]+)?".*/\1/p' \
+    "${PROJECT_ROOT}/project.godot" | head -n 1)
+
+  if [[ -f "${vscode_settings}" ]]; then
+    # JSON escapes `\` as `\\`
+    vscode_godot=$(sed -n -E 's/.*"godotTools\.editorPath\.godot4"\s*:\s*"([^"]+)".*/\1/p' "${vscode_settings}" \
+      | head -n 1 | sed -E 's/\\\\/\//g')
   fi
 
-  # And $GODOT must point to a valid executable
-  if [[ ! -x "${GODOT}" ]]; then
-    fail "\$GODOT doesn't exist or is not executable (${GODOT})"
-  fi
+  for godot in "${GODOT:-}" "${vscode_godot}" godot; do
+    if [[ -n "${godot}" ]] \
+      && command -v "${godot}" >/dev/null 2>&1 \
+      && version=$("${godot}" --version 2>/dev/null | tr -d '\r') \
+      && [[ "${version}" =~ ^[0-9]+\.[0-9]+[^[:space:]]*$ ]]; then
+      info "Godot ${COLOR_VERSION}${version}${COLOR_RESET} detected at ${COLOR_FILE}${godot}${COLOR_RESET}" >&2
 
-  local version=`"${GODOT}" --version`
-  info "Godot ${COLOR_VERSION}${version}${COLOR_RESET} detected at ${COLOR_FILE}${GODOT}${COLOR_RESET}"
+      # i.e. 4.6.stable.official.89cea1439 or 4.6.1.stable.official.14d19694e => 4.6
+      if [[ -n "${project_version}" && "$(echo "${version}" | cut -d . -f 1-2)" != "${project_version}" ]]; then
+        fail "Godot ${COLOR_VERSION}${version}${COLOR_RESET} doesn't match the project version" \
+          "${COLOR_VERSION}${project_version}${COLOR_RESET} (${COLOR_FILE}project.godot${COLOR_RESET})" >&2
+      fi
+
+      echo "${godot}"
+      return 0
+    fi
+  done
+
+  fail "Godot can't be found. Set ${COLOR_VAR}\$GODOT${COLOR_RESET} to the Godot executable to use" >&2
 }
 
-# Check that gdlint is installed or fail if not available
+# Output the command to run pip (i.e. `pip3`, `pip` or `python3 -m pip`)
+# or fail if not available
+# Usage: PIP=$(require_pip) && $PIP install ...
+require_pip() {
+  local cmd
+  for cmd in pip3 pip; do
+    if command -v "${cmd}" >/dev/null 2>&1; then
+      echo "${cmd}"
+      return 0
+    fi
+  done
+
+  for cmd in python3 python; do
+    if command -v "${cmd}" >/dev/null 2>&1 && "${cmd}" -m pip --version >/dev/null 2>&1; then
+      echo "${cmd} -m pip"
+      return 0
+    fi
+  done
+
+  fail "pip can't be found" >&2
+}
+
+# Given the output of `pip show -f <package>` from stdin, output the full path
+# of the executable named $1 installed by that package
+# Returns 1 (without output) if not found
+pip_show_find_bin() {
+  local bin="$1"
+  local output location file path
+
+  # pip on Windows outputs CRLF line endings
+  output=$(tr -d '\r')
+  location=$(echo "${output}" | sed -n -E 's/^Location:\s*//p' | head -n 1)
+  file=$(echo "${output}" | grep -E "^\s+.*[/\\\\]${bin}(\.exe)?$" | head -n 1 | sed -E 's/^\s+//')
+
+  if [[ -z "${location}" || -z "${file}" ]]; then
+    return 1
+  fi
+
+  path=$(echo "${location}/${file}" | tr '\\' '/')
+  path=$(realpath "${path}" 2>/dev/null || echo "${path}")
+
+  if [[ ! -x "${path}" ]]; then
+    return 1
+  fi
+
+  echo "${path}"
+}
+
+# Output the path to the executable $1 provided by the gdtoolkit python package
+# or fail if not available.
+# First it's searched in $PATH (outputting just the name of the binary), and
+# if not found, it's searched in the gdtoolkit package installed via pip or pipx
+# Usage: GDLINT=$(require_gdtoolkit_bin gdlint) && "$GDLINT" ...
+require_gdtoolkit_bin() {
+  local bin="$1"
+  local pip path
+
+  if command -v "${bin}" >/dev/null 2>&1; then
+    echo "${bin}"
+    return 0
+  fi
+
+  # `pipx runpip <package>` is pip running inside the pipx venv of the package.
+  # Missing pip/pipx is not an error here, as only one of them might be used
+  for pip in "$(require_pip 2>/dev/null)" "pipx runpip gdtoolkit"; do
+    if [[ -n "${pip}" ]] \
+      && path=$(${pip} show -f gdtoolkit 2>/dev/null | pip_show_find_bin "${bin}"); then
+      info "${bin} not found in ${COLOR_VAR}\$PATH${COLOR_RESET} but installed via ${COLOR_VAR}${pip}${COLOR_RESET}: ${COLOR_FILE}${path}${COLOR_RESET}" >&2
+      echo "${path}"
+      return 0
+    fi
+  done
+
+  fail "${bin} can't be found" >&2
+}
+
+# Output the path to the gdlint executable or fail if not available
+# Usage: GDLINT=$(require_gdlint) && "$GDLINT" ...
 require_gdlint() {
-  if ! command -v "gdlint" >/dev/null 2>&1; then
-    fail "gdlint can't be found" >&2
-  fi
+  require_gdtoolkit_bin gdlint
 }
 
-# Check that gdformat is installed or fail if not available
+# Output the path to the gdformat executable or fail if not available
+# Usage: GDFORMAT=$(require_gdformat) && "$GDFORMAT" ...
 require_gdformat() {
-  if ! command -v "gdformat" >/dev/null 2>&1; then
-    fail "gdformat can't be found" >&2
-  fi
+  require_gdtoolkit_bin gdformat
 }
 
 # Create a .zip on target path ($1) from the list specified in the
