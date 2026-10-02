@@ -23,6 +23,15 @@ func test_version() -> void:
 
 
 ##
+## Ensures that [member HanpekiLogger.VERSION] is the same as the version in the plugin config
+##
+func test_version_matches_plugin_config() -> void:
+	var config = ConfigFile.new()
+	assert_eq(config.load("res://addons/hanpeki_godot_logger/plugin.cfg"), OK)
+	assert_eq(config.get_value("plugin", "version", ""), HanpekiLogger.VERSION)
+
+
+##
 ## Test that is possible to create HanpekiLogger instances by passing options directly
 ##
 func test_create() -> void:

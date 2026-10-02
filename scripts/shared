@@ -67,12 +67,14 @@ source "${PROJECT_ROOT}/scripts/config"
 
 # Main source file. Version is read from this file
 VERSION_GD_FILE="${PLUGIN_FOLDER}/logger.gd"
-# Version is injected in this file
+# Plugin config, its version needs to match the one in VERSION_GD_FILE
 PLUGIN_CONFIG_FILE="${PLUGIN_FOLDER}/plugin.cfg"
 # Name of the plugin as set in the config file
 PLUGIN_NAME=$(grep -E '^name=' "${PLUGIN_CONFIG_FILE}" | sed -E 's/name="([^"]+)"/\1/')
 # Version of the plugin as set in VERSION_GD_FILE
 PLUGIN_VERSION=$(grep -E '^const VERSION\s*=\s*"' "${VERSION_GD_FILE}" | sed -E "s/.*['\"]([^'\"]+)['\"].*/\\1/")
+# Version of the plugin as set in PLUGIN_CONFIG_FILE
+PLUGIN_CONFIG_VERSION=$(grep -E '^version\s*=' "${PLUGIN_CONFIG_FILE}" | sed -E "s/.*['\"]([^'\"]+)['\"].*/\\1/")
 
 
 #

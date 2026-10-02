@@ -63,8 +63,9 @@ enum StackLevelConfig {
 	FULL_IF_PROD,
 }
 
-## This version is used in the build process for the plugin config and the zip filename
-const VERSION = "1.0.0-rc.2"
+## Version of the library, used in the build process for the zip filename.
+## It needs to match the version in [code]plugin.cfg[/code] (checked by the build and the tests)
+const VERSION = "1.0.0"
 ## Value for undefined namespaces
 const NS_UNDEFINED = &""
 ## Default stack mode of the logger (see [member Options.stack_mode])

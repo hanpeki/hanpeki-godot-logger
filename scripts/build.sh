@@ -40,6 +40,11 @@ done
 # Shift away the parsed options
 shift $((OPTIND - 1))
 
+# The version needs to be the same in the code and in the plugin config
+if [ "${PLUGIN_VERSION}" != "${PLUGIN_CONFIG_VERSION}" ]; then
+  fail "Version mismatch: ${COLOR_VERSION}${PLUGIN_VERSION}${COLOR_RESET} in $(basename "${VERSION_GD_FILE}") != ${COLOR_VERSION}${PLUGIN_CONFIG_VERSION}${COLOR_RESET} in $(basename "${PLUGIN_CONFIG_FILE}")"
+fi
+
 # If -t was given, test that the version is the same as the tag to use
 if [ "${test_version}" = true ]; then
   tagName=$(get_github_tag)
@@ -66,9 +71,6 @@ zip_file="${OUTPUT_FOLDER}/$(basename "${PLUGIN_FOLDER}")-${PLUGIN_VERSION}.zip"
 # Initial dot needs to be removed for paths to be preserved
 find "${PLUGIN_FOLDER}" -type f ! -name "*.uid" | sed 's|^\./||' > "${temp_file}"
 
-# Inject the version from the class into the plugin config
-sed -i.bak -E "s/^(version\s*=\s*['\"])[^'\"]+/\\1${PLUGIN_VERSION}/" "${PLUGIN_CONFIG_FILE}"
-
 # Output feedback
 echo -e "Creating a .zip file for ${COLOR_NAME}${PLUGIN_NAME} ${COLOR_VERSION}v${PLUGIN_VERSION}${COLOR_RESET} > ${COLOR_FILE}${zip_file}${COLOR_RESET}"
 while IFS= read -r file; do
@@ -88,6 +90,3 @@ fi
 
 # Create the zip file
 zip_files "${zip_file}" "${temp_file}"
-
-# Revert the changes done in the plugin config (in case of running it in local)
-mv "${PLUGIN_CONFIG_FILE}".bak "${PLUGIN_CONFIG_FILE}"
