@@ -35,6 +35,10 @@ const BREAKPOINTS_FILE = "res://.godot/hanpeki_logger/breakpoints.cfg"
 const BREAKPOINTS_SECTION = "breakpoints"
 ## Path of the plugin config, used to check if the plugin is enabled in the project
 const PLUGIN_CFG_PATH = "res://addons/hanpeki_godot_logger/plugin.cfg"
+## Milliseconds to wait when the game is closing, so the messages still queued in the debugger
+## connection are sent to the editor (they are sent by another thread, and lost when the
+## connection is closed). Otherwise, messages logged right before quitting wouldn't be displayed.
+const EXIT_FLUSH_DELAY_MS = 100
 
 ## Cached result of [method is_available] ([code]null[/code] until checked)
 static var _available: Variant = null
@@ -119,17 +123,26 @@ static func _on_logger_created(names: Dictionary[int, String]) -> void:
 		EngineDebugger.register_message_capture(CAPTURE_PREFIX, _on_editor_message)
 		_capture_registered = true
 		_load_breakpoints_file()
-		# Unregistered when the game is closing, as Godot reports an error when trying to
-		# unregister it by itself after the debugger has been already shut down
 		var main_loop = Engine.get_main_loop()
 		if main_loop is SceneTree:
-			main_loop.root.tree_exiting.connect(_unregister_capture)
+			main_loop.root.tree_exiting.connect(_on_game_exiting)
 	_send_colors()
 	_send_levels(names)
 
 
 ##
-## Unregister the capture receiving the messages from the editor (when the game is closing)
+## Called when the game is closing, before the debugger connection is closed
+##
+static func _on_game_exiting() -> void:
+	# give time to the debugger connection to send the queued messages (see EXIT_FLUSH_DELAY_MS)
+	OS.delay_msec(EXIT_FLUSH_DELAY_MS)
+	# Unregistered here, as Godot reports an error when trying to unregister it by itself after the
+	# debugger has been already shut down
+	_unregister_capture()
+
+
+##
+## Unregister the capture receiving the messages from the editor
 ##
 static func _unregister_capture() -> void:
 	if _capture_registered && EngineDebugger.has_capture(CAPTURE_PREFIX):

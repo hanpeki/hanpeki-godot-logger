@@ -6,6 +6,8 @@ Unlike the other transports, it's fully **static** (it's never instantiated), as
 
 When the game is not running from the editor (i.e. in exported builds), it's never used, so it doesn't have any performance impact.
 
+The messages are sent to the editor by the debugger connection in the background, so when the game is closing it waits a short time (100 ms) for the pending ones to be sent. This way, messages logged right before quitting are displayed in the dock as well.
+
 ## Static methods
 
 The colors used in the editor dock are configured statically, as there's only one dock for every logger. They can be set at any time (even before creating any logger), and calling them when not running from the editor doesn't have any effect apart from storing the colors.

@@ -226,3 +226,13 @@ func test_breakpoints_file() -> void:
 		file = FileAccess.open(path, FileAccess.WRITE)
 		file.store_string(original)
 		file.close()
+
+
+func test_game_exiting_flushes_messages() -> void:
+	# waits for the debugger connection to send the queued messages, and unregisters the capture
+	HanpekiLoggerEditorTransport._capture_registered = true
+	var start = Time.get_ticks_msec()
+	HanpekiLoggerEditorTransport._on_game_exiting()
+	var elapsed = Time.get_ticks_msec() - start
+	assert_gte(elapsed, HanpekiLoggerEditorTransport.EXIT_FLUSH_DELAY_MS)
+	assert_false(HanpekiLoggerEditorTransport._capture_registered)
