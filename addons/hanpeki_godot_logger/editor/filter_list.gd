@@ -22,6 +22,11 @@ const BREAK_TOOLTIP = "Stop the execution (like a breakpoint) when logging these
 
 ## Breakpoint icon in the header, identifying the column
 var _header_break_icon: TextureRect
+## Container of the header, with a right margin matching the vertical scroll bar of the rows (when
+## visible), to keep the header aligned with them
+var _header_margin: MarginContainer
+## Scroll container of the rows
+var _scroll: ScrollContainer
 ## Container of the rows
 var _rows_container: VBoxContainer
 ## Rows by key, as [code]{ row, check, label, break_button, break_on }[/code]
@@ -33,8 +38,10 @@ func _init(title: String) -> void:
 	size_flags_vertical = SIZE_EXPAND_FILL
 	custom_minimum_size.x = 120
 
+	_header_margin = MarginContainer.new()
+	add_child(_header_margin)
 	var header = HBoxContainer.new()
-	add_child(header)
+	_header_margin.add_child(header)
 	var title_label = Label.new()
 	title_label.text = title
 	title_label.size_flags_horizontal = SIZE_EXPAND_FILL
@@ -45,14 +52,15 @@ func _init(title: String) -> void:
 	_header_break_icon.tooltip_text = BREAK_TOOLTIP
 	header.add_child(_header_break_icon)
 
-	var scroll = ScrollContainer.new()
-	scroll.size_flags_vertical = SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	add_child(scroll)
+	_scroll = ScrollContainer.new()
+	_scroll.size_flags_vertical = SIZE_EXPAND_FILL
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	add_child(_scroll)
 	_rows_container = VBoxContainer.new()
 	_rows_container.size_flags_horizontal = SIZE_EXPAND_FILL
 	_rows_container.add_theme_constant_override("separation", 0)
-	scroll.add_child(_rows_container)
+	_scroll.add_child(_rows_container)
+	_scroll.get_v_scroll_bar().visibility_changed.connect(_update_header_margin)
 
 
 ##
@@ -135,6 +143,16 @@ func set_row_break(key: Variant, enabled: bool) -> void:
 		return
 	_rows[key].break_on = enabled
 	_rows[key].break_button.modulate = Color.WHITE if enabled else BREAK_DISABLED_MODULATE
+
+
+##
+## Leave space at the right of the header for the vertical scroll bar of the rows (when visible),
+## as the rows get narrower, so the breakpoint icons stay aligned
+##
+func _update_header_margin() -> void:
+	var scroll_bar = _scroll.get_v_scroll_bar()
+	var margin = scroll_bar.get_combined_minimum_size().x if scroll_bar.visible else 0
+	_header_margin.add_theme_constant_override("margin_right", int(margin))
 
 
 func _notification(what: int) -> void:

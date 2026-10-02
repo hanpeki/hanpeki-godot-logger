@@ -8,7 +8,7 @@ extends Node
 func _ready() -> void:
 	test_logger()
 	get_tree().quit()
-	
+
 func test_logger() -> void:
 	# Custom levels are logged with `message`
 	# Note that TRACE is lower than DEBUG, so it's not logged by the configured transports,

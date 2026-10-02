@@ -1,9 +1,10 @@
 @tool
 ##
-## Content of the [code]Logs[/code] editor dock: the list of entries received from the running game
-## (left), the search input (below the list) and the level and namespace filters (right)
+## Content of the [code]Logs[/code] editor dock, in two rows: the list of entries received from the
+## running game with the namespace and level filters at its right, and below them the search input
+## with the toolbar buttons
 ##
-extends HSplitContainer
+extends VBoxContainer
 
 ## Emitted when any state to be saved changes (see [method get_state])
 signal state_changed
@@ -49,6 +50,8 @@ var _search: LineEdit
 var _levels_list: FilterList
 ## List with the namespace filters
 var _ns_list: FilterList
+## Split between the entries and the filters (first row)
+var _main_split: HSplitContainer
 ## Split between the namespace and level filters
 var _filters_split: HSplitContainer
 ## Toggle to show or hide the namespace filters
@@ -64,6 +67,8 @@ var _clear_button: Button
 var _break_on_both_toggle: Button
 ## Toggle to ignore every breakpoint
 var _ignore_breakpoints_toggle: Button
+## Material rendering the ignore breakpoints toggle in grayscale (when pressed)
+var _desaturate_material: ShaderMaterial
 
 ## Received entries, as
 ## [code]{ level, level_name, ns, msg, unix_ms, stack, item: TreeItem }[/code]
@@ -253,7 +258,7 @@ func get_state() -> Dictionary:
 		"preserve_logs": _preserve_toggle.button_pressed,
 		"disabled_levels": _disabled_levels,
 		"disabled_namespaces": _disabled_namespaces.keys(),
-		"split_offset": split_offset,
+		"split_offset": _main_split.split_offset,
 		"filters_split_offset": _filters_split.split_offset,
 		"column_widths": _column_widths.duplicate(),
 		"break_levels": _break_levels,
@@ -288,7 +293,7 @@ func apply_state(state: Dictionary) -> void:
 		for ns in _namespaces:
 			_set_namespace_enabled(ns, !_disabled_namespaces.has(ns))
 	if typeof(state.get("split_offset")) == TYPE_INT:
-		split_offset = state.split_offset
+		_main_split.split_offset = state.split_offset
 	if typeof(state.get("filters_split_offset")) == TYPE_INT:
 		_filters_split.split_offset = state.filters_split_offset
 	if typeof(state.get("column_widths")) == TYPE_DICTIONARY:
@@ -346,6 +351,8 @@ func _notification(what: int) -> void:
 		_preserve_toggle.icon = get_theme_icon("Pin", "EditorIcons")
 		_clear_button.icon = get_theme_icon("Clear", "EditorIcons")
 		_update_ignore_breakpoints_icon()
+		# deferred, so the button has its theme (font) updated when measuring the text
+		_update_break_on_both_width.call_deferred()
 		# the copy icon depends on the theme, so it's recalculated when needed
 		_copy_icon = null
 
@@ -377,17 +384,18 @@ func _get_copy_icon(row_height: float) -> Texture2D:
 
 func _build_ui() -> void:
 	size_flags_vertical = SIZE_EXPAND_FILL
-	dragged.connect(func(_offset): state_changed.emit())
 
-	# Left side: entries and search
-	var left = VBoxContainer.new()
-	left.size_flags_horizontal = SIZE_EXPAND_FILL
-	add_child(left)
+	# First row: entries (left) and filters (right), resizable
+	_main_split = HSplitContainer.new()
+	_main_split.size_flags_vertical = SIZE_EXPAND_FILL
+	_main_split.dragged.connect(func(_offset): state_changed.emit())
+	add_child(_main_split)
 
 	_tree = Tree.new()
 	_tree.hide_root = true
 	_tree.columns = Column.size()
 	_tree.select_mode = Tree.SELECT_MULTI
+	_tree.size_flags_horizontal = SIZE_EXPAND_FILL
 	_tree.size_flags_vertical = SIZE_EXPAND_FILL
 	_tree.create_item()
 	for column in [Column.TIME, Column.LEVEL, Column.NS]:
@@ -400,10 +408,11 @@ func _build_ui() -> void:
 	_tree.gui_input.connect(_on_tree_gui_input)
 	_tree.draw.connect(_draw_column_guides)
 	_tree.mouse_exited.connect(func(): _set_hovered_item(null))
-	left.add_child(_tree)
+	_main_split.add_child(_tree)
 
+	# Second row: search and toolbar buttons
 	var bottom = HBoxContainer.new()
-	left.add_child(bottom)
+	add_child(bottom)
 	_search = LineEdit.new()
 	_search.placeholder_text = "Filter Messages"
 	_search.clear_button_enabled = true
@@ -442,6 +451,18 @@ func _build_ui() -> void:
 	_update_break_on_both_toggle()
 	bottom.add_child(_break_on_both_toggle)
 	_ignore_breakpoints_toggle = _create_tool_button("Ignore the log breakpoints", false)
+	# the icon shows the state by itself (desaturated when pressed), without the pressed tint
+	_ignore_breakpoints_toggle.add_theme_color_override("icon_pressed_color", Color.WHITE)
+	_ignore_breakpoints_toggle.add_theme_color_override("icon_hover_pressed_color", Color.WHITE)
+	var shader = Shader.new()
+	shader.code = """
+shader_type canvas_item;
+void fragment() {
+	COLOR.rgb = vec3(dot(COLOR.rgb, vec3(0.299, 0.587, 0.114)));
+}
+"""
+	_desaturate_material = ShaderMaterial.new()
+	_desaturate_material.shader = shader
 	_ignore_breakpoints_toggle.toggled.connect(
 		func(_pressed):
 			_update_ignore_breakpoints_icon()
@@ -450,10 +471,11 @@ func _build_ui() -> void:
 	)
 	bottom.add_child(_ignore_breakpoints_toggle)
 
-	# Right side: filters (namespaces at the left of levels), resizable within the remaining space
+	# Filters at the right of the entries (namespaces at the left of levels), resizable within the
+	# remaining space
 	_filters_split = HSplitContainer.new()
 	_filters_split.dragged.connect(func(_offset): state_changed.emit())
-	add_child(_filters_split)
+	_main_split.add_child(_filters_split)
 	_ns_list = FilterList.new("Namespaces")
 	_ns_list.filter_toggled.connect(_on_namespace_filter_toggled)
 	_ns_list.break_toggled.connect(_on_namespace_break_toggled)
@@ -556,15 +578,28 @@ func _apply_column_widths() -> void:
 ##
 ## Create a flat button with an icon (set when the theme is available) and a [param tooltip].
 ## If [param pressed] is provided, it's created as a toggle button with that initial state.
+## It uses the [code]FlatButton[/code] editor variation (like the editor debugger toolbar), which
+## highlights it on hover and when pressed.
 ##
 func _create_tool_button(tooltip: String, pressed: Variant = null) -> Button:
 	var button = Button.new()
-	button.flat = true
+	button.theme_type_variation = "FlatButton"
 	button.tooltip_text = tooltip
 	if pressed != null:
 		button.toggle_mode = true
 		button.button_pressed = pressed
 	return button
+
+
+##
+## Fix the width of the AND / OR toggle to the one needed by its widest text ("AND"), so it doesn't
+## cause a layout shift when toggled
+##
+func _update_break_on_both_width() -> void:
+	var text = _break_on_both_toggle.text
+	_break_on_both_toggle.text = "AND"
+	_break_on_both_toggle.custom_minimum_size.x = _break_on_both_toggle.get_minimum_size().x
+	_break_on_both_toggle.text = text
 
 
 ##
@@ -585,15 +620,14 @@ func _update_break_on_both_toggle() -> void:
 
 
 ##
-## Show if the breakpoints are ignored in the icon of its toggle (same icons as the debugger)
+## Show if the breakpoints are ignored in the icon of its toggle (same icons as the debugger, but
+## desaturated when ignored)
 ##
 func _update_ignore_breakpoints_icon() -> void:
-	var icon_name = (
-		"DebugSkipBreakpointsOn"
-		if _ignore_breakpoints_toggle.button_pressed
-		else "DebugSkipBreakpointsOff"
-	)
+	var pressed = _ignore_breakpoints_toggle.button_pressed
+	var icon_name = "DebugSkipBreakpointsOn" if pressed else "DebugSkipBreakpointsOff"
 	_ignore_breakpoints_toggle.icon = get_theme_icon(icon_name, "EditorIcons")
+	_ignore_breakpoints_toggle.material = _desaturate_material if pressed else null
 
 
 ##
