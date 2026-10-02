@@ -46,7 +46,8 @@ static func _init() -> void:
 	var instance = HanpekiLogger.create(options)
 
 	# Only want to output logs to the console when developing.
-	# Same goes for stopping the code execution via assert on certain levels.
+	# Note that stopping the execution on certain levels or namespaces (like breakpoints) is
+	# configured in the editor `Logs` dock (ERROR and FATAL by default)
 	if OS.is_debug_build():
 		var console_transport = HanpekiLoggerConsoleTransport.create()
 		console_transport.set_level_format(
@@ -65,12 +66,6 @@ static func _init() -> void:
 		HanpekiLoggerEditorTransport.set_level_color(TRACE, TRACE_COLOR)
 		HanpekiLoggerEditorTransport.set_level_color(IMPORTANT, IMPORTANT_COLOR)
 		HanpekiLoggerEditorTransport.set_ns_color(&"ColoredNamespace", COLORED_NAMESPACE_COLOR)
-
-		# By default AssertTransport stops on ERROR and FATAL. Let's set this to stop also on WARN:
-		var assert_opt = HanpekiLoggerAssertTransport.Options.new()
-		assert_opt.assert_levels = HanpekiLogger.FATAL | HanpekiLogger.ERROR | HanpekiLogger.WARN
-		var assert_transport = HanpekiLoggerAssertTransport.create(assert_opt)
-		instance.add_transport(assert_transport)
 
 	# We always want to output into a file
 	var file_transport = HanpekiLoggerFileTransport.create()

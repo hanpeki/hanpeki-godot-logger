@@ -18,6 +18,11 @@ const STATE_KEYS = [
 	"disabled_namespaces",
 	"split_offset",
 	"filters_split_offset",
+	"column_widths",
+	"break_levels",
+	"break_namespaces",
+	"break_on_both",
+	"ignore_breakpoints",
 ]
 
 ## Panel with the logs

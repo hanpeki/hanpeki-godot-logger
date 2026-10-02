@@ -442,6 +442,12 @@ func _message(level: int, msg: String, ns: StringName, ns_level: int = INHERIT) 
 	for transport in transports:
 		transport.process(msg_data)
 
+	# Stop the execution if a breakpoint is set for this message in the editor `Logs` dock, after
+	# every transport processed it. The log call is a few frames below in the debugger stack.
+	if _send_to_editor && HanpekiLoggerEditorTransport._should_break(level, ns):
+		HanpekiLoggerEditorTransport._notify_break(msg_data)
+		breakpoint
+
 
 ##
 ## Converts a level given as an [int], or as its name ([String] or [StringName],

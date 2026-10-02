@@ -43,3 +43,15 @@ Set the `color` to display namespaces without a specific one. Defaults to [`DEFA
 HanpekiLoggerEditorTransport.set_level_color(Log.IMPORTANT, Color.ORANGE)
 HanpekiLoggerEditorTransport.set_ns_color(&"ScriptManager", Color(0.6, 0.9, 0.6))
 ```
+
+## Breakpoints
+
+The `Logs` dock can also stop the execution when certain messages are logged, like breakpoints set at runtime (using the GDScript [`breakpoint`](https://docs.godotengine.org/en/4.6/tutorials/scripting/gdscript/gdscript_basics.html#keywords) keyword, so no error is logged).
+
+- The breakpoint icons (red dots) next to each level and namespace in the `Levels` and `Namespaces` lists select which messages stop the execution (click them to toggle them, like the breakpoints in the script editor). By default, `FATAL` and `ERROR` are set.
+- The `OR` / `AND` toggle selects if any of them is enough (a checked level **or** a checked namespace), or if both are needed (a checked level **and** a checked namespace). When no level or no namespace is checked, `AND` behaves like `OR`.
+- The skip breakpoints toggle ignores every log breakpoint.
+
+The configuration is saved by the editor in `res://.godot/hanpeki_logger/breakpoints.cfg` (local to the project, not versioned nor exported), which the game reads when the first logger is created, so it applies from the very first message. Changes while the game is running are sent to it right away. Breakpoints are applied after every transport processed the message, so the message is already logged when the execution stops.
+
+Note that the execution stops inside the logger: the line making the log call is a few frames below in the stack of the `Debugger` dock (the editor tries to show that line in the script editor automatically). Breakpoints are also ignored when the `Skip Breakpoints` option of the `Debugger` dock is enabled.

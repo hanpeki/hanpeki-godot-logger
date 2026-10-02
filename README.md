@@ -9,13 +9,14 @@
 ## Features
 
 - ☑ Configurable logging system
-- ☑ Console, file and assert transports provided by default
+- ☑ Console and file transports provided by default
 - ☑ Customizable and extensible transports
 - ☑ Support for custom log levels
 - ☑ Flexible, non-linear log levels
 - ☑ Dedicated namespaces
 - ☑ Per-level, per-namespace and per-transport configuration
 - ☑ Configurable stack traces per level and transport
+- ☑ Editor `Logs` dock with real-time filters and log breakpoints
 
 Check the [API documentation here](./docs/README.md), see [example code here](./examples/README.md), or keep reading for an introduction.
 
@@ -27,7 +28,6 @@ For example:
 
 - When a log event is triggered, `HanpekiLoggerConsoleTransport` decides how to display it in the console.
 - `HanpekiLoggerFileTransport` writes the log event to a file.
-- `HanpekiLoggerAssertTransport` stops the execution (via `assert`) on the configured levels, which is useful while developing.
 
 `HanpekiLogger` lets you customize these transports or define new ones with custom formats and outputs (e.g. sending logs to a remote service like Sentry).
 
@@ -138,6 +138,7 @@ Log.scriptManager.info("States initialized")
 - **Custom levels** can be registered with `register_level` (or `Options.custom_levels`). Since the predefined levels are not consecutive powers of two, custom ones can be placed between them.
 - **Transports** have their own options (levels, time format, stack traces...) and can be added or removed at any time with `add_transport` / `remove_transport`.
 - **Stack traces** are configured per level in the logger (`Options.stack_mode`), and each transport inherits it by default or overrides it with its own `stack_mode`.
+- **Editor integration**: when running from the editor, every message (regardless of the configured levels) is shown in the `Logs` dock (in the bottom panel of the editor), where it can be filtered by level, namespace and text. Its breakpoint icons stop the execution (like a breakpoint) when logging certain levels or namespaces (`FATAL` and `ERROR` by default).
 - **File logs** are flushed periodically (`flush_interval_ms`) and right away for errors (`flush_levels`) to balance performance and safety. Their path accepts `{DATETIME}` and `{N}` placeholders, and only the latest `max_files` (15 by default) are kept.
 
 Check the [API documentation](./docs/README.md) for the details.
