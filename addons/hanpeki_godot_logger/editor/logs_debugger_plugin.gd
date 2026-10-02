@@ -27,6 +27,8 @@ func _capture(message: String, data: Array, _session_id: int) -> bool:
 			_panel.set_levels(data)
 		HanpekiLoggerEditorTransport.MSG_NAMESPACE:
 			_panel.add_namespace(data[0])
+		HanpekiLoggerEditorTransport.MSG_COLORS:
+			_panel.set_colors(data)
 		_:
 			return false
 	return true

@@ -15,21 +15,12 @@ enum Column { TIME, LEVEL, NS, MSG }
 const MAX_ENTRIES = 10000
 ## Text displayed for messages without namespace
 const NS_NONE_TEXT = "(none)"
+## Color (dimmed) of the item for messages without namespace in the namespaces filter
+const NS_NONE_COLOR = Color(0.5, 0.5, 0.5)
 ## Width of the namespace column (when there are namespaces to display)
 const NS_COLUMN_WIDTH = 120
 ## Id of the copy button displayed when hovering an entry
 const COPY_BUTTON_ID = 0
-## Color used for each predefined level
-const LEVEL_COLORS: Dictionary[int, Color] = {
-	HanpekiLogger.DEBUG: Color(0.6, 0.6, 0.6),
-	HanpekiLogger.INFO: Color(0.35, 0.8, 1.0),
-	HanpekiLogger.CORE: Color(0.4, 0.85, 0.4),
-	HanpekiLogger.WARN: Color(1.0, 0.85, 0.3),
-	HanpekiLogger.ERROR: Color(1.0, 0.4, 0.4),
-	HanpekiLogger.FATAL: Color(1.0, 0.2, 0.5),
-}
-## Color used for custom levels
-const DEFAULT_LEVEL_COLOR = Color(0.85, 0.85, 0.85)
 ## Color used for the stack lines
 const STACK_COLOR = Color(0.6, 0.6, 0.7)
 ## Background color of the separators between game sessions
@@ -76,6 +67,15 @@ var _separators: Array[Dictionary] = []
 var _next_id: int = 0
 ## Number of entries with a namespace, to only show the namespace column when needed
 var _ns_entries: int = 0
+## Colors of each level, received from the game (see [method set_colors]).
+## The defaults shared by the transports are used until then
+var _level_colors: Dictionary[int, Color] = HanpekiLogger.Transport.DEFAULT_LEVEL_COLORS.duplicate()
+## Color of the levels without a specific one
+var _level_default_color: Color = HanpekiLogger.Transport.DEFAULT_CUSTOM_LEVEL_COLOR
+## Colors of each namespace, received from the game
+var _ns_colors: Dictionary[String, Color] = {}
+## Color of the namespaces without a specific one
+var _ns_default_color: Color = HanpekiLogger.Transport.DEFAULT_NS_COLOR
 ## Union of the levels disabled in the filters. It also keeps the ones not known yet (i.e. custom
 ## levels from a previous session), so they are disabled when they are registered
 var _disabled_levels: int = 0
@@ -115,6 +115,7 @@ func add_entry(data: Array) -> void:
 	item.set_text(Column.LEVEL, entry.level_name)
 	item.set_custom_color(Column.LEVEL, _get_level_color(entry.level))
 	item.set_text(Column.NS, entry.ns)
+	item.set_custom_color(Column.NS, _get_ns_color(entry.ns))
 	item.set_text(Column.MSG, entry.msg)
 	item.set_tooltip_text(Column.MSG, entry.msg)
 	item.set_metadata(Column.TIME, entry)
@@ -155,6 +156,31 @@ func set_levels(levels: Array) -> void:
 ##
 func add_namespace(ns: String) -> void:
 	_ensure_namespace(ns)
+
+
+##
+## Set the colors configured in the game, as sent by
+## [method HanpekiLoggerEditorTransport._get_colors_payload], and apply them to the filters and
+## the existing entries
+##
+func set_colors(data: Array) -> void:
+	_level_colors.clear()
+	for level_color in data[0]:
+		_level_colors[level_color[0]] = level_color[1]
+	_level_default_color = data[1]
+	_ns_colors.clear()
+	for ns_color in data[2]:
+		_ns_colors[ns_color[0]] = ns_color[1]
+	_ns_default_color = data[3]
+
+	for level in _levels:
+		_levels[level].item.set_custom_color(0, _get_level_color(level))
+	for ns in _namespaces:
+		if ns:
+			_namespaces[ns].item.set_custom_color(0, _get_ns_color(ns))
+	for entry in _entries:
+		entry.item.set_custom_color(Column.LEVEL, _get_level_color(entry.level))
+		entry.item.set_custom_color(Column.NS, _get_ns_color(entry.ns))
 
 
 ##
@@ -420,6 +446,8 @@ func _ensure_namespace(ns: String) -> Dictionary:
 		if known.naturalnocasecmp_to(ns) < 0:
 			index += 1
 	var item = _create_filter_item(_ns_tree, ns if ns else NS_NONE_TEXT, index)
+	# the item for messages without namespace is dimmed, as it's not a real namespace
+	item.set_custom_color(0, _get_ns_color(ns) if ns else NS_NONE_COLOR)
 	var enabled = !_disabled_namespaces.has(ns)
 	item.set_checked(0, enabled)
 	_namespaces[ns] = {"enabled": enabled, "count": 0, "item": item}
@@ -659,4 +687,8 @@ func _format_time(unix_ms: int) -> String:
 
 
 func _get_level_color(level: int) -> Color:
-	return LEVEL_COLORS.get(level, DEFAULT_LEVEL_COLOR)
+	return _level_colors.get(level, _level_default_color)
+
+
+func _get_ns_color(ns: String) -> Color:
+	return _ns_colors.get(ns, _ns_default_color)

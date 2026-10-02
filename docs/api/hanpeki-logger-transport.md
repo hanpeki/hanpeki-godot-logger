@@ -23,6 +23,14 @@ A `Transport` is an abstract class defining the interface for specifying how mes
 - <a name="origin"></a> `ORIGIN`: Only provide the origin (where the log was called from). Note that this is only possible if the stack information is available.
 - <a name="full"></a> `FULL`: Provide the full stack. Note that this is only possible if the stack information is available.
 
+## Constants
+
+Colors shared by the pre-defined transports, so the levels are displayed consistently. Each transport can still customize them (i.e. [`HanpekiLoggerConsoleTransport.set_level_format`](./transport-console.md#set_level_format) or [`HanpekiLoggerEditorTransport.set_level_color`](./transport-editor.md#set_level_color)).
+
+- <a name="const-default-level-colors"></a>`DEFAULT_LEVEL_COLORS`: `Dictionary[int, Color]` with the color of each predefined level.
+- <a name="const-default-custom-level-color"></a>`DEFAULT_CUSTOM_LEVEL_COLOR`: color for levels without a specific one (usually custom levels).
+- <a name="const-default-ns-color"></a>`DEFAULT_NS_COLOR`: color for namespaces without a specific one.
+
 ## Instance Methods
 
 ### <a name="set_options"></a> set_options

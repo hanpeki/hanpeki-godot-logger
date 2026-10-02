@@ -30,3 +30,14 @@ func test_logger() -> void:
 	Log.scriptManager.message(Log.IMPORTANT, "important message")
 	Log.scriptManager.error("error message") # Note, this will stop assert based on our config
 	Log.scriptManager.fatal("fatal message") # Note, this will stop assert based on our config
+
+	# Same messages with a namespace with custom colors (see singletons/log.gd), to compare them
+	# with the default namespace formatting used by ScriptManager
+	Log.coloredNamespace.message(Log.TRACE, "trace message")
+	Log.coloredNamespace.debug("debug message")
+	Log.coloredNamespace.info("info message")
+	Log.coloredNamespace.core("core message")
+	Log.coloredNamespace.warn("warn message") # Note, this will stop assert based on our config
+	Log.coloredNamespace.message(Log.IMPORTANT, "important message")
+	Log.coloredNamespace.error("error message") # Note, this will stop assert based on our config
+	Log.coloredNamespace.fatal("fatal message") # Note, this will stop assert based on our config
