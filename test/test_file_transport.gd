@@ -1,11 +1,11 @@
 extends GutTest
 
-## Folder where all the files of these tests are created (removed after each test)
-const TEST_FOLDER = "user://hanpeki_logger_tests"
+const FileTestUtils = preload("res://test/utils/file_test_utils.gd")
+const TEST_FOLDER = FileTestUtils.TEST_FOLDER
 
 
 func after_each() -> void:
-	_remove_folder(TEST_FOLDER)
+	FileTestUtils.remove_folder()
 
 
 ##
@@ -57,8 +57,8 @@ func test_datetime_placeholder() -> void:
 ##
 func test_shared_file() -> void:
 	var path = TEST_FOLDER + "/shared.txt"
-	var transport1 = _create_transport(path)
-	var transport2 = _create_transport(path)
+	var transport1 = FileTestUtils.create_transport(path)
+	var transport2 = FileTestUtils.create_transport(path)
 
 	assert_not_null(transport1._file)
 	assert_same(transport1._file, transport2._file)
@@ -79,7 +79,7 @@ func test_shared_file() -> void:
 	assert_null(HanpekiLoggerFileTransport._files[path].get_ref())
 
 	# So a new transport opens it again
-	var transport3 = _create_transport(path)
+	var transport3 = FileTestUtils.create_transport(path)
 	assert_not_null(transport3._file)
 	assert_true(transport3._file.is_open())
 
@@ -94,7 +94,7 @@ func test_file_open_error() -> void:
 	FileAccess.open(blocker, FileAccess.WRITE).close()
 	var path = blocker + "/log.txt"
 
-	var transport = _create_transport(path)
+	var transport = FileTestUtils.create_transport(path)
 	assert_null(transport._file)
 	assert_push_error("can't open the log file")
 	_handle_engine_errors()
@@ -175,15 +175,6 @@ func test_flush_every_message() -> void:
 
 
 ##
-## Create a [HanpekiLoggerFileTransport] writing to the given [param path]
-##
-func _create_transport(path: String) -> HanpekiLoggerFileTransport:
-	var options = HanpekiLoggerFileTransport.Options.new()
-	options.file_path = path
-	return HanpekiLoggerFileTransport.create(options)
-
-
-##
 ## Create a [HanpekiLogger.MsgData] with the given [param level], [param msg] and
 ## [param utime], to be processed directly by a transport
 ##
@@ -204,17 +195,3 @@ func _handle_engine_errors() -> void:
 	for error in get_errors():
 		if error.is_engine_error():
 			error.handled = true
-
-
-##
-## Remove the given folder and all its content
-##
-func _remove_folder(path: String) -> void:
-	var dir = DirAccess.open(path)
-	if !dir:
-		return
-	for file in dir.get_files():
-		dir.remove(file)
-	for folder in dir.get_directories():
-		_remove_folder(path.path_join(folder))
-	DirAccess.remove_absolute(path)
