@@ -16,7 +16,32 @@ Multiple transports using the same path share the same opened file, which is clo
 
 Defaults to `"logs/{DATETIME}.txt"`.
 
-The `{DATETIME}` placeholder is available, being replaced with the date and time as `YYYY-MM-DD_hh.mm.ss` when the file is created (parent folders will be created too if not existing already).
+The following placeholders are available, both in the file name and in the folders (parent folders will be created if not existing already):
+
+- `{DATETIME}`: replaced with the date and time as `YYYY-MM-DD_hh.mm.ss` when the file is created.
+- `{N}`: replaced with the next number after the highest one found in the existing log files matching the path (starting from `1`). i.e. `logs/game-{N}.txt` generates `logs/game-1.txt`, `logs/game-2.txt`, etc.
+- `{N,padding}`: same as `{N}`, but padded with zeros to have at least `padding` digits. i.e. `logs/game-{N,3}.txt` generates `logs/game-001.txt`, `logs/game-002.txt`, etc. (and can grow to `logs/game-1000.txt`).
+
+Any other text between braces (i.e. `{TIME}`), or a padding that is not an integer greater than `0` (i.e. `{N,0}`), is reported as an error via `assert` when creating the transport.
+
+Transports created with the same `file_path` during the same session share the same file, even if the placeholders would generate a different one (i.e. a new `{N}` value). Once every transport using it is freed, a new one would generate a new file.
+
+
+## <a name="max-files"></a> max_files: [int](https://docs.godotengine.org/en/4.6/classes/class_int.html)
+
+Maximum number of log files to keep, including the new one. When a new file is created, the oldest log files are deleted so only the latest `max_files` remain.
+
+Only the files whose path matches [`file_path`](#file-path) (with its placeholders) are considered, so unrelated files in the same folders are never deleted. i.e. with `logs/game-{N}.txt`, `logs/game-3.txt` is a log file, but `logs/notes.txt` or `logs/game-x.txt` are not. When the placeholders are in the folders (i.e. `logs/{DATETIME}/game.txt`), only the log files are deleted from the oldest folders, keeping the folders and any other content.
+
+Files are sorted by their modification time and, if equal, by the values of their placeholders.
+
+If a file can't be deleted (i.e. due to OS permissions), the rotation stops, and it's tried again the next time a log file is created.
+
+It only has effect when `file_path` contains placeholders, as otherwise the same file is used (and overwritten) every time.
+
+`0` disables the rotation.
+
+Defaults to `15`.
 
 
 ## <a name="flush-interval-ms"></a> flush_interval_ms: [int](https://docs.godotengine.org/en/4.6/classes/class_int.html)
