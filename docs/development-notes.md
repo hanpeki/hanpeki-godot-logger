@@ -55,6 +55,8 @@ It should work in Mac, Linux as well as in Windows using Git Bash.
 
 When a commit is tagged with a semantic version, it will be [released](https://github.com/hanpeki/hanpeki-godot-logger/releases) and the built code will be attached as a downloable file in the release page.
 
+The version is defined in `HanpekiLogger.VERSION` ([logger.gd](../addons/hanpeki_godot_logger/logger.gd)), and it needs to be the same in [plugin.cfg](../addons/hanpeki_godot_logger/plugin.cfg) (it can't be read from there at runtime, as `.cfg` files are not included in exported projects by default). Both [build](../scripts/build.sh) and the tests fail when they don't match, and the release also fails when the tag (i.e. `v1.0.0`) is not the same version.
+
 ## Class.create() vs Class.new()
 
 Since Godot doesn't allow overriding the `.init()` method properly to provide constructors with required parameters (actually it's allowed because the original signature has no methods, but not standard), the preferred approach to create instances is by calling their static `.create()` method.

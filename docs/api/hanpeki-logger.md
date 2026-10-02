@@ -7,6 +7,7 @@ Main class providing the logging functionalities. Usually it would be provided a
 - `VERSION`: Version of the library
 - <a name="const-ns-undefined"></a>`NS_UNDEFINED`: Value used for undefined namespaces
 - <a name="const-predefined-levels"></a>`PREDEFINED_LEVELS`: Union of the predefined levels (`DEBUG`, `INFO`, `CORE`, `WARN`, `ERROR` and `FATAL`), which can't be deregistered.
+- <a name="const-predefined-level-names"></a>`PREDEFINED_LEVEL_NAMES`: `Dictionary[int, String]` with the names of the predefined levels (`"Debug"`, `"Info"`, `"Core"`, `"Warn"`, `"Error"` and `"Fatal"`).
 - <a name="const-default-stack-level"></a>`DEFAULT_STACK_LEVEL`: Default stack mode of the logger (see [`Options.stack_mode`](./hanpeki-logger-options.md#stack_mode)):
   ```
   {

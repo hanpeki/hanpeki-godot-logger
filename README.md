@@ -4,7 +4,7 @@
 
 > A customizable logging system for Godot with transports and namespaces.
 
-![Example usage](./examples/img/example-ns.png)
+![Logs dock](./examples/img/v1_0_0-editor.png)
 
 ## Features
 
@@ -138,7 +138,7 @@ Log.scriptManager.info("States initialized")
 - **Custom levels** can be registered with `register_level` (or `Options.custom_levels`). Since the predefined levels are not consecutive powers of two, custom ones can be placed between them.
 - **Transports** have their own options (levels, time format, stack traces...) and can be added or removed at any time with `add_transport` / `remove_transport`.
 - **Stack traces** are configured per level in the logger (`Options.stack_mode`), and each transport inherits it by default or overrides it with its own `stack_mode`.
-- **Editor integration**: when running from the editor, every message (regardless of the configured levels) is shown in the `Logs` dock (in the bottom panel of the editor), where it can be filtered by level, namespace and text. Its breakpoint icons stop the execution (like a breakpoint) when logging certain levels or namespaces (`FATAL` and `ERROR` by default).
+- **Editor integration**: when running from the editor, every message (regardless of the configured levels) is shown in the `Logs` dock (in the bottom panel of the editor by default), where it can be filtered by level, namespace and text. Its breakpoint icons stop the execution (like a breakpoint) when logging certain levels or namespaces (`FATAL` and `ERROR` by default).
 - **File logs** are flushed periodically (`flush_interval_ms`) and right away for errors (`flush_levels`) to balance performance and safety. Their path accepts `{DATETIME}` and `{N}` placeholders, and only the latest `max_files` (15 by default) are kept.
 
 Check the [API documentation](./docs/README.md) for the details.

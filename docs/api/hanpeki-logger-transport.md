@@ -60,3 +60,30 @@ Set how to format the time displayed in the messages logged by this transport.
 > **process(\_data: [MsgData](./hanpeki-logger-msg-data.md)) → void**
 
 Method called when the transport needs to log an already "_parsed_" message. Extending classes must implement it.
+
+It's only called for the messages enabled both in the logger and in the transport (see [`set_level`](#set_level)).
+
+## <a name="custom-transports"></a> Custom transports
+
+Custom transports extend `HanpekiLogger.Transport` and implement [`process`](#process). The following helpers are available to them, so they behave like the pre-defined ones:
+
+- `_get_time_str(data: MsgData) → String`: the time of the message formatted as configured with [`set_time_format`](#set_time_format) (`hh:mm:ss.mmm`, or `YYYY-MM-DD hh:mm:ss.mmm` for the `*_DATE_TIME` formats). With `RELATIVE`, it's the time elapsed since the game started.
+- `_get_stack_str(data: MsgData) → String`: the stack of the message as text, based on the stack mode resolved for its level (empty if none, or not available).
+- `_get_stack_mode(level: int) → StackLevelMode`: the stack mode resolved for the given `level`, combining the transport and logger configuration (see [`Options.stack_mode`](./hanpeki-logger-transport-options.md#stack_mode)), to decide how much of [`MsgData.stack`](./hanpeki-logger-msg-data.md#stack) to display.
+
+```gdscript
+class_name RemoteTransport extends HanpekiLogger.Transport
+
+func process(data: HanpekiLogger.MsgData) -> void:
+	var text = "%s [%s] %s%s" % [_get_time_str(data), data.level_name, data.msg, _get_stack_str(data)]
+	MyRemoteService.send(text)
+```
+
+```gdscript
+var transport = RemoteTransport.new()
+# Optional, the default options inherit the levels and stack mode of the logger
+transport.set_options(options)
+logger.add_transport(transport)
+```
+
+Transports with their own options extend [`Transport.Options`](./hanpeki-logger-transport-options.md) and override [`set_options`](#set_options) (see the pre-defined transports for reference).
