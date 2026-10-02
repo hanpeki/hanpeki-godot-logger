@@ -76,6 +76,15 @@ const DEFAULT_STACK_LEVEL: Dictionary[int, StackLevelConfig] = {
 ## Union of the predefined levels, which can't be deregistered as they are used by the built-in
 ## methods ([method debug], [method info], etc.)
 const PREDEFINED_LEVELS = DEBUG | INFO | CORE | WARN | ERROR | FATAL
+## Names of the predefined levels
+const PREDEFINED_LEVEL_NAMES: Dictionary[int, String] = {
+	DEBUG: "Debug",
+	INFO: "Info",
+	CORE: "Core",
+	WARN: "Warn",
+	ERROR: "Error",
+	FATAL: "Fatal",
+}
 
 ## Unix time (in milliseconds) when the app started, calculated once so the time of each message
 ## can be obtained from [method Time.get_ticks_msec] only, keeping the relative time between
@@ -86,14 +95,7 @@ static var _start_unix_ms: int = (
 )
 
 ## Name to display for each level
-var _names: Dictionary[int, String] = {
-	DEBUG: "Debug",
-	INFO: "Info",
-	CORE: "Core",
-	WARN: "Warn",
-	ERROR: "Error",
-	FATAL: "Fatal",
-}
+var _names: Dictionary[int, String] = PREDEFINED_LEVEL_NAMES.duplicate()
 
 ## All registered levels, as they need to be unique at bit level (i.e. 1 | 2 | 4 ... 64)
 var _registered_levels: int = PREDEFINED_LEVELS
@@ -110,6 +112,10 @@ var _stack_needed: Dictionary[int, bool] = {}
 
 ## List of added transports
 var _transports: Array[Transport]
+## Whether every message is sent to the [code]Logs[/code] editor dock (via the static
+## [HanpekiLoggerEditorTransport]), regardless of the enabled levels. Only when the game is
+## running from the editor with the plugin enabled.
+var _send_to_editor: bool = false
 
 
 ##
@@ -210,6 +216,8 @@ func register_level(level: int, name: String) -> void:
 	_registered_levels |= level
 	_names[level] = name
 	_recalculate_is_stack_needed()
+	if _send_to_editor:
+		HanpekiLoggerEditorTransport._send_levels(_names)
 
 
 ##
@@ -228,6 +236,8 @@ func deregister_level(level: int) -> void:
 	_registered_levels &= ~level
 	_names.erase(level)
 	_recalculate_is_stack_needed()
+	if _send_to_editor:
+		HanpekiLoggerEditorTransport._send_levels(_names)
 
 
 ##
@@ -328,6 +338,8 @@ func remove_transport(transport: Transport) -> bool:
 ## don't need the [code]ns[/code] parameter anymore as they will use the provided [param ns]
 ##
 func bind_ns(ns: StringName) -> WithBoundNs:
+	if _send_to_editor:
+		HanpekiLoggerEditorTransport._send_namespace(ns)
 	return WithBoundNs.new(ns, self)
 
 
@@ -335,42 +347,42 @@ func bind_ns(ns: StringName) -> WithBoundNs:
 ## Logs the given [param msg] with level = [enum HanpekiLogger.DEBUG] and an optional [param ns]
 ##
 func debug(msg: String, ns: StringName = NS_UNDEFINED) -> void:
-	message(DEBUG, msg, ns)
+	_message(DEBUG, msg, ns)
 
 
 ##
 ## Logs the given [param msg] with level = [enum HanpekiLogger.INFO] and an optional [param ns]
 ##
 func info(msg: String, ns: StringName = NS_UNDEFINED) -> void:
-	message(INFO, msg, ns)
+	_message(INFO, msg, ns)
 
 
 ##
 ## Logs the given [param msg] with level = [enum HanpekiLogger.CORE] and an optional [param ns]
 ##
 func core(msg: String, ns: StringName = NS_UNDEFINED) -> void:
-	message(CORE, msg, ns)
+	_message(CORE, msg, ns)
 
 
 ##
 ## Logs the given [param msg] with level = [enum HanpekiLogger.WARN] and an optional [param ns]
 ##
 func warn(msg: String, ns: StringName = NS_UNDEFINED) -> void:
-	message(WARN, msg, ns)
+	_message(WARN, msg, ns)
 
 
 ##
 ## Logs the given [param msg] with level = [enum HanpekiLogger.ERROR] and an optional [param ns]
 ##
 func error(msg: String, ns: StringName = NS_UNDEFINED) -> void:
-	message(ERROR, msg, ns)
+	_message(ERROR, msg, ns)
 
 
 ##
 ## Logs the given [param msg] with level = [enum HanpekiLogger.FATAL] and an optional [param ns]
 ##
 func fatal(msg: String, ns: StringName = NS_UNDEFINED) -> void:
-	message(FATAL, msg, ns)
+	_message(FATAL, msg, ns)
 
 
 ##
@@ -379,11 +391,25 @@ func fatal(msg: String, ns: StringName = NS_UNDEFINED) -> void:
 func message(level: int, msg: String, ns: StringName = NS_UNDEFINED) -> void:
 	assert(_is_valid_level(level), "Trying to send a message using an invalid level")
 	assert(_registered_levels & level != NONE, "Trying to use an unregistered level")
+	_message(level, msg, ns)
 
-	if level & _level == NONE:
+
+##
+## Internal implementation of every logging method, deciding if the message needs to be processed.
+## [param ns_level] is the level of the [WithBoundNs] logging the message, which can disable
+## levels only for its namespace. It's omitted ([enum INHERIT]) when logging directly.
+## Messages disabled by levels still reach the editor transport (when running from the editor),
+## so they can be filtered in the editor instead.
+##
+func _message(level: int, msg: String, ns: StringName, ns_level: int = INHERIT) -> void:
+	var enabled = level & _level != NONE && (ns_level == INHERIT || ns_level & level != NONE)
+	# stop as soon as possible when nothing needs the message
+	if !enabled && !_send_to_editor:
 		return
-	var transports = _get_active_transports(level)
-	if transports.size() == NONE:
+	var transports: Array[Transport] = []
+	if enabled:
+		transports = _get_active_transports(level)
+	if transports.is_empty() && !_send_to_editor:
 		return
 
 	var msg_data = MsgData.new()
@@ -395,7 +421,8 @@ func message(level: int, msg: String, ns: StringName = NS_UNDEFINED) -> void:
 	msg_data.msg = msg
 	msg_data.ns = ns
 
-	if _stack_needed.has(level):
+	# the editor transport always receives the full stack
+	if _send_to_editor || _stack_needed.has(level):
 		var stack = get_stack()
 		if stack:
 			var source = stack[0].source
@@ -409,8 +436,17 @@ func message(level: int, msg: String, ns: StringName = NS_UNDEFINED) -> void:
 					msg_data.stack = stack.slice(i)
 					break
 
+	# the editor transport is always the first one
+	if _send_to_editor:
+		HanpekiLoggerEditorTransport._send_entry(msg_data)
 	for transport in transports:
 		transport.process(msg_data)
+
+	# Stop the execution if a breakpoint is set for this message in the editor `Logs` dock, after
+	# every transport processed it. The log call is a few frames below in the debugger stack.
+	if _send_to_editor && HanpekiLoggerEditorTransport._should_break(level, ns):
+		HanpekiLoggerEditorTransport._notify_break(msg_data)
+		breakpoint
 
 
 ##
@@ -446,6 +482,10 @@ static func _is_valid_level(level: int) -> bool:
 ##
 func _init(options: Options) -> void:
 	assert(options, "No options found. Please use HanpekiLogger.create()")
+	# checked before applying the options, so registered custom levels are sent to the editor
+	_send_to_editor = HanpekiLoggerEditorTransport.is_available()
+	if _send_to_editor:
+		HanpekiLoggerEditorTransport._on_logger_created(_names)
 	set_options(options)
 
 
@@ -559,6 +599,21 @@ class Transport:
 		## Note that this is only possible if the stack information is available
 		FULL,
 	}
+
+	## Default colors for the predefined levels, shared by the predefined transports so they are
+	## displayed consistently (each transport can still customize them)
+	const DEFAULT_LEVEL_COLORS: Dictionary[int, Color] = {
+		HanpekiLogger.DEBUG: Color(0.6, 0.6, 0.6),
+		HanpekiLogger.INFO: Color(0.35, 0.8, 1.0),
+		HanpekiLogger.CORE: Color(0.4, 0.85, 0.4),
+		HanpekiLogger.WARN: Color(1.0, 0.85, 0.3),
+		HanpekiLogger.ERROR: Color(1.0, 0.4, 0.4),
+		HanpekiLogger.FATAL: Color(1.0, 0.2, 0.5),
+	}
+	## Default color for levels without a specific one (usually custom levels)
+	const DEFAULT_CUSTOM_LEVEL_COLOR = Color(0.85, 0.85, 0.85)
+	## Default color for namespaces without a specific one
+	const DEFAULT_NS_COLOR = Color(0.8, 0.8, 0.8)
 
 	## Level to use by the transport, by default the same as the logger where it's registered
 	var _level: int = HanpekiLogger.INHERIT
@@ -826,57 +881,45 @@ class WithBoundNs:
 	## Logs the given [param msg] with level = [enum HanpekiLogger.DEBUG] using the bound namespace
 	##
 	func debug(msg: String) -> void:
-		if !_is_active(DEBUG):
-			return
-		_logger.message(DEBUG, msg, _ns)
+		_logger._message(DEBUG, msg, _ns, _level)
 
 	##
 	## Logs the given [param msg] with level = [enum HanpekiLogger.INFO] using the bound namespace
 	##
 	func info(msg: String) -> void:
-		if !_is_active(INFO):
-			return
-		_logger.message(INFO, msg, _ns)
+		_logger._message(INFO, msg, _ns, _level)
 
 	##
 	## Logs the given [param msg] with level = [enum HanpekiLogger.CORE] using the bound namespace
 	##
 	func core(msg: String) -> void:
-		if !_is_active(CORE):
-			return
-		_logger.message(CORE, msg, _ns)
+		_logger._message(CORE, msg, _ns, _level)
 
 	##
 	## Logs the given [param msg] with level = [enum HanpekiLogger.WARN] using the bound namespace
 	##
 	func warn(msg: String) -> void:
-		if !_is_active(WARN):
-			return
-		_logger.message(WARN, msg, _ns)
+		_logger._message(WARN, msg, _ns, _level)
 
 	##
 	## Logs the given [param msg] with level = [enum HanpekiLogger.ERROR] using the bound namespace
 	##
 	func error(msg: String) -> void:
-		if !_is_active(ERROR):
-			return
-		_logger.message(ERROR, msg, _ns)
+		_logger._message(ERROR, msg, _ns, _level)
 
 	##
 	## Logs the given [param msg] with level = [enum HanpekiLogger.FATAL] using the bound namespace
 	##
 	func fatal(msg: String) -> void:
-		if !_is_active(FATAL):
-			return
-		_logger.message(FATAL, msg, _ns)
+		_logger._message(FATAL, msg, _ns, _level)
 
 	##
 	## Logs a [param msg] in a custom [param level] with the bound namespace
 	##
 	func message(level: int, msg: String) -> void:
-		if !_is_active(level):
-			return
-		_logger.message(level, msg, _ns)
+		assert(HanpekiLogger._is_valid_level(level), "Trying to send a message using an invalid level")
+		assert(_logger._registered_levels & level != NONE, "Trying to use an unregistered level")
+		_logger._message(level, msg, _ns, _level)
 
 	##
 	## Called on instanciation.
@@ -894,13 +937,3 @@ class WithBoundNs:
 		)
 		_ns = ns
 		_logger = logger
-
-	##
-	## Check if this bound instance is active for the given [param level].
-	## Having the level set to [enum HanpekiLogger.INHERIT] will always return [code]true[/code]
-	## for it to be checked in the bound logger.
-	##
-	func _is_active(level: int) -> bool:
-		if _level == HanpekiLogger.INHERIT:
-			return true
-		return _level & level != NONE

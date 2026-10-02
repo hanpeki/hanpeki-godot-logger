@@ -10,18 +10,21 @@ var _formatting: bool = true
 ## Format to apply to the time as a BBTag with [code]{time}[/code] replaced
 var _datetime_format: String = "[bgcolor=#333033][color=grey] {time} [/color][/bgcolor]"
 ## Formats to apply to the levels as a BBTag with [code]{level}[/code] replaced
+## (using the colors shared with other transports, see [constant DEFAULT_LEVEL_COLORS])
 var _level_formats: Dictionary[int, String] = {
-	DEBUG: "[color=grey][{level}][/color]",
-	INFO: "[color=#5cf][{level}][/color] ",
-	CORE: "[color=green][{level}][/color] ",
-	WARN: "[color=yellow][{level}][/color] ",
-	ERROR: "[color=red][{level}][/color]",
-	FATAL: "[bgcolor=red][color=white][{level}][/color][/bgcolor]",
+	DEBUG: "[color=#%s][{level}][/color]" % _html(DEFAULT_LEVEL_COLORS[DEBUG]),
+	INFO: "[color=#%s][{level}][/color] " % _html(DEFAULT_LEVEL_COLORS[INFO]),
+	CORE: "[color=#%s][{level}][/color] " % _html(DEFAULT_LEVEL_COLORS[CORE]),
+	WARN: "[color=#%s][{level}][/color] " % _html(DEFAULT_LEVEL_COLORS[WARN]),
+	ERROR: "[color=#%s][{level}][/color]" % _html(DEFAULT_LEVEL_COLORS[ERROR]),
+	FATAL: (
+		"[bgcolor=#%s][color=white][{level}][/color][/bgcolor]" % _html(DEFAULT_LEVEL_COLORS[FATAL])
+	),
 }
 ## Formats to apply to the levels as a BBTag with [code]{ns}[/code] replaced
 var _ns_formats: Dictionary[StringName, String] = {}
 ## Format to apply when an unregistered level is used as a BBTag with [code]{level}[/code] replaced
-var _level_default_format = "[{level}]"
+var _level_default_format = "[color=#%s][{level}][/color]" % _html(DEFAULT_CUSTOM_LEVEL_COLOR)
 ## Format to apply when an unregistered namespace is used as a BBTag with [code]{ns}[/code] replaced
 var _ns_default_format = "[bgcolor=#335][color=#eee] {ns} [/color][/bgcolor]"
 ## Format to display when the stack is logged as a BBTag with [code]{stack}[/code] replaced
@@ -111,6 +114,13 @@ func set_stack_format(format: String) -> void:
 func _init(options: Options) -> void:
 	assert(options, "No options found. Please use HanpekiLoggerConsoleTransport.create()")
 	set_options(options)
+
+
+##
+## Get the given [param color] as an html string (without alpha) to be used in BBTags
+##
+static func _html(color: Color) -> String:
+	return color.to_html(false)
 
 
 func _format_level(data: HanpekiLogger.MsgData) -> String:

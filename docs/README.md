@@ -24,8 +24,7 @@ List of pre-defined transports:
 - [HanpekiLoggerConsoleTransport.Options](./api/transport-console-options.md)
 - [HanpekiLoggerFileTransport](./api/transport-file.md)
 - [HanpekiLoggerFileTransport.Options](./api/transport-file-options.md)
-- [HanpekiLoggerAssertTransport](./api/transport-assert.md)
-- [HanpekiLoggerAssertTransport.Options](./api/transport-assert-options.md)
+- [HanpekiLoggerEditorTransport](./api/transport-editor.md)
 
 
 And technical documentation for the development of the library:

@@ -439,16 +439,6 @@ func test_transport_null_options() -> void:
 	assert_true(instance._stack_needed.has(HanpekiLogger.FATAL))
 
 
-##
-## Test that the assert transport doesn't make the logger retrieve the stack, as it doesn't use it
-##
-func test_assert_transport_stack() -> void:
-	var instance = HanpekiLogger.create()
-	instance.add_transport(HanpekiLoggerAssertTransport.create())
-
-	for level in instance._names:
-		assert_false(instance._stack_needed.has(level))
-
 
 ##
 ## Test registering custom levels at any position: below, between and above the predefined ones

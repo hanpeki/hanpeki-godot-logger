@@ -12,31 +12,31 @@ Returns a new instance of [`HanpekiLoggerConsoleTransport`](#class-hanpeki-logge
 
 ## Instance methods
 
-### set_level_format
+### <a name="set_level_format"></a> set_level_format
 
 > **set_level_format(level: [int](https://docs.godotengine.org/en/4.6/classes/class_int.html), format: [String](https://docs.godotengine.org/en/4.6/classes/class_string.html)) -> void**
 
 Set the format to use when printing the level name, as a template string accepting [BBTags](https://docs.godotengine.org/en/4.6/tutorials/ui/bbcode_in_richtextlabel.html), with the `{level}` placeholder.
 
-### set_level_default_format
+### <a name="set_level_default_format"></a> set_level_default_format
 
 > **set_level_default_format(format: [String](https://docs.godotengine.org/en/4.6/classes/class_string.html)) -> void**
 
 Set the format to use when printing a level name without an explicit format configured (usually custom levels), as a template string accepting [BBTags](https://docs.godotengine.org/en/4.6/tutorials/ui/bbcode_in_richtextlabel.html), with the `{level}` placeholder.
 
-### set_ns_format
+### <a name="set_ns_format"></a> set_ns_format
 
 > **set_ns_format(ns: [StringName](https://docs.godotengine.org/en/4.6/classes/class_stringname.html), format: [String](https://docs.godotengine.org/en/4.6/classes/class_string.html)) -> void**
 
 Set the format to use when printing a namespace name, as a template string accepting [BBTags](https://docs.godotengine.org/en/4.6/tutorials/ui/bbcode_in_richtextlabel.html), with the `{ns}` placeholder.
 
-### set_ns_default_format
+### <a name="set_ns_default_format"></a> set_ns_default_format
 
 > **set_ns_default_format(format: [String](https://docs.godotengine.org/en/4.6/classes/class_string.html)) -> void**
 
 Set the format to use when printing a namespace name without an explicit format configured, as a template string accepting [BBTags](https://docs.godotengine.org/en/4.6/tutorials/ui/bbcode_in_richtextlabel.html), with the `{ns}` placeholder.
 
-### set_stack_format
+### <a name="set_stack_format"></a> set_stack_format
 
 > **set_stack_format(format: [String](https://docs.godotengine.org/en/4.6/classes/class_string.html)) -> void**
 
