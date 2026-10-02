@@ -385,7 +385,9 @@ func _get_copy_icon(row_height: float) -> Texture2D:
 func _build_ui() -> void:
 	size_flags_vertical = SIZE_EXPAND_FILL
 
+  #
 	# First row: entries (left) and filters (right), resizable
+	#
 	_main_split = HSplitContainer.new()
 	_main_split.size_flags_vertical = SIZE_EXPAND_FILL
 	_main_split.dragged.connect(func(_offset): state_changed.emit())
@@ -410,7 +412,9 @@ func _build_ui() -> void:
 	_tree.mouse_exited.connect(func(): _set_hovered_item(null))
 	_main_split.add_child(_tree)
 
+  #
 	# Second row: search and toolbar buttons
+	#
 	var bottom = HBoxContainer.new()
 	add_child(bottom)
 	_search = LineEdit.new()
@@ -427,6 +431,12 @@ func _build_ui() -> void:
 	)
 	_preserve_toggle.toggled.connect(func(_pressed): state_changed.emit())
 	bottom.add_child(_preserve_toggle)
+
+  #
+  # ↑ filter/messages buttons  ↓ panels buttons
+	#
+	bottom.add_child(VSeparator.new())
+
 	_ns_toggle = _create_tool_button("Show/hide the namespaces filter", true)
 	_ns_toggle.toggled.connect(
 		func(_pressed):
@@ -441,6 +451,12 @@ func _build_ui() -> void:
 			state_changed.emit()
 	)
 	bottom.add_child(_levels_toggle)
+
+  #
+	# ↑ panels buttons ↓ breakpoint buttons
+	#
+	bottom.add_child(VSeparator.new())
+
 	_break_on_both_toggle = _create_tool_button("", false)
 	_break_on_both_toggle.toggled.connect(
 		func(_pressed):
