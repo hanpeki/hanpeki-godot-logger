@@ -27,8 +27,13 @@ const DEFAULT_COLUMN_WIDTHS: Dictionary[int, int] = {
 	Column.LEVEL: 60,
 	Column.NS: 120,
 }
-## Minimum width of a column (when restoring the saved widths)
+## Columns that can be resized by dragging their right border (the time column is fixed and the
+## message one takes the remaining space)
+const RESIZABLE_COLUMNS: Array[int] = [Column.LEVEL, Column.NS]
+## Minimum width of a resizable column
 const MIN_COLUMN_WIDTH = 30
+## Distance (in pixels) to the border of a resizable column to start resizing it
+const RESIZE_GRAB_DISTANCE = 4
 ## Id of the copy button displayed when hovering an entry
 const COPY_BUTTON_ID = 0
 ## Color used for the stack lines
@@ -84,6 +89,8 @@ var _next_id: int = 0
 var _ns_entries: int = 0
 ## Width of the columns that can be resized (see [constant DEFAULT_COLUMN_WIDTHS])
 var _column_widths: Dictionary[int, int] = DEFAULT_COLUMN_WIDTHS.duplicate()
+## Column being resized by dragging its border ([code]-1[/code] if none)
+var _resizing_column: int = -1
 ## Colors of each level, received from the game (see [method set_colors]).
 ## The defaults shared by the transports are used until then
 var _level_colors: Dictionary[int, Color] = HanpekiLogger.Transport.DEFAULT_LEVEL_COLORS.duplicate()
@@ -287,7 +294,7 @@ func apply_state(state: Dictionary) -> void:
 	if typeof(state.get("column_widths")) == TYPE_DICTIONARY:
 		for column in state.column_widths:
 			var width = state.column_widths[column]
-			if _column_widths.has(column) && typeof(width) == TYPE_INT:
+			if column in RESIZABLE_COLUMNS && typeof(width) == TYPE_INT:
 				_column_widths[column] = maxi(MIN_COLUMN_WIDTH, width)
 		_apply_column_widths()
 	if typeof(state.get("break_levels")) == TYPE_INT:
@@ -391,6 +398,7 @@ func _build_ui() -> void:
 	_tree.item_mouse_selected.connect(_on_entry_clicked)
 	_tree.button_clicked.connect(_on_entry_button_clicked)
 	_tree.gui_input.connect(_on_tree_gui_input)
+	_tree.draw.connect(_draw_column_guides)
 	_tree.mouse_exited.connect(func(): _set_hovered_item(null))
 	left.add_child(_tree)
 
@@ -737,9 +745,78 @@ func _on_entry_clicked(click_position: Vector2, mouse_button_index: int) -> void
 
 
 ##
+## Get the x position (in the entries tree) of the right border of the given [param column]
+##
+func _get_column_border_x(column: int) -> float:
+	var x = _tree.get_theme_stylebox("panel").get_margin(SIDE_LEFT)
+	for i in range(column + 1):
+		x += _tree.get_column_width(i)
+	return x
+
+
+##
+## Get the resizable column whose right border is at the given [param x] of the entries tree
+## ([code]-1[/code] if none)
+##
+func _get_resizable_column_at(x: float) -> int:
+	for column in RESIZABLE_COLUMNS:
+		if (
+			_tree.get_column_width(column) > 0
+			&& absf(x - _get_column_border_x(column)) <= RESIZE_GRAB_DISTANCE
+		):
+			return column
+	return -1
+
+
+##
+## Resize the columns by dragging their right border (anywhere in the entries tree, as there's no
+## title row). Returns [code]true[/code] if the [param event] was handled.
+##
+func _handle_column_resize(event: InputEvent) -> bool:
+	if event is InputEventMouseButton && event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			_resizing_column = _get_resizable_column_at(event.position.x)
+			return _resizing_column != -1
+		if _resizing_column != -1:
+			_resizing_column = -1
+			state_changed.emit()
+			return true
+	elif event is InputEventMouseMotion:
+		if _resizing_column != -1:
+			var start = _get_column_border_x(_resizing_column) - _tree.get_column_width(
+				_resizing_column
+			)
+			var width = maxi(MIN_COLUMN_WIDTH, roundi(event.position.x - start))
+			_column_widths[_resizing_column] = width
+			_apply_column_widths()
+			return true
+		var on_border = _get_resizable_column_at(event.position.x) != -1
+		_tree.mouse_default_cursor_shape = CURSOR_HSIZE if on_border else CURSOR_ARROW
+	return false
+
+
+##
+## Draw a subtle line at the right border of the resizable columns, so they can be found
+## without a title row
+##
+func _draw_column_guides() -> void:
+	var panel = _tree.get_theme_stylebox("panel")
+	var top = panel.get_margin(SIDE_TOP)
+	var bottom = _tree.size.y - panel.get_margin(SIDE_BOTTOM)
+	var color = _tree.get_theme_color("guide_color")
+	for column in RESIZABLE_COLUMNS:
+		if _tree.get_column_width(column) > 0:
+			var x = _get_column_border_x(column)
+			_tree.draw_line(Vector2(x, top), Vector2(x, bottom), color)
+
+
+##
 ## Show the copy button on the hovered entry, and copy the selected entries with Ctrl+C
 ##
 func _on_tree_gui_input(event: InputEvent) -> void:
+	if _handle_column_resize(event):
+		_tree.accept_event()
+		return
 	if event is InputEventMouseMotion:
 		var item = _tree.get_item_at_position(event.position)
 		# the button is shown in the entry, even when hovering its stack lines
