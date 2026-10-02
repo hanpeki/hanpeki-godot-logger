@@ -4,7 +4,8 @@ extends Node
 # This class is set up in the project as a global called `Log`
 #
 
-# Custom levels, which can be placed between the predefined ones as they are not consecutive
+# Example of custom levels, which can be defined if the predefined ones are not enough, can be
+# "placed between" the predefined ones as they are not consecutive (in terms of importance)
 # Less important than DEBUG
 const TRACE = HanpekiLogger.DEBUG >> 1
 # More important than WARN, but less than ERROR
@@ -41,13 +42,13 @@ static func _init() -> void:
 		options.level = HanpekiLogger.DEBUG
 	else:
 		# on production builds, only log errors
+		# Note that the editor `Logs` dock will still receive every log call, but the transports
+		# will only output the ones that are ERROR or FATAL
 		options.levels = [HanpekiLogger.FATAL, HanpekiLogger.ERROR]
 
 	var instance = HanpekiLogger.create(options)
 
 	# Only want to output logs to the console when developing.
-	# Note that stopping the execution on certain levels or namespaces (like breakpoints) is
-	# configured in the editor `Logs` dock (ERROR and FATAL by default)
 	if OS.is_debug_build():
 		var console_transport = HanpekiLoggerConsoleTransport.create()
 		console_transport.set_level_format(
@@ -68,10 +69,13 @@ static func _init() -> void:
 		HanpekiLoggerEditorTransport.set_ns_color(&"ColoredNamespace", COLORED_NAMESPACE_COLOR)
 
 	# We always want to output into a file
-	var file_transport = HanpekiLoggerFileTransport.create()
+	var file_options = HanpekiLoggerFileTransport.Options.new()
+	file_options.max_files = 10 # Customize how many files to keep, older ones are deleted
+	var file_transport = HanpekiLoggerFileTransport.create(file_options)
 	instance.add_transport(file_transport)
 
 	# Set up the bound namespaces we want to expose, as the "raw" instance is not exposed
+	# (could be, but this way we can control what namespaces are exposed and how they are used)
 	global = instance.bind_ns(&"")
 	scriptManager = instance.bind_ns(&"ScriptManager")
 	coloredNamespace = instance.bind_ns(&"ColoredNamespace")

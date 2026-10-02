@@ -29,7 +29,7 @@ the line making the log call.
 
 Will be `Array[Dictionary]` unless not available, in which case it will be `null` (see [`get_stack`](https://docs.godotengine.org/en/4.6/classes/class_@gdscript.html#class-gdscript-method-get-stack) for details on how to enable for production builds).
 
-It's only retrieved when at least one of the transports processing the message is going to display it, based on the stack mode of the logger and the transports. Transports should only display the part of it allowed by their resolved stack mode.
+It's only retrieved when at least one of the transports processing the message is going to display it, based on the stack mode of the logger and the transports. Transports should only display the part of it allowed by their resolved stack mode (see [custom transports](./hanpeki-logger-transport.md#custom-transports)).
 
 ## <a name="ns"></a> ns: [StringName](https://docs.godotengine.org/en/4.6/classes/class_stringname.html)
 
