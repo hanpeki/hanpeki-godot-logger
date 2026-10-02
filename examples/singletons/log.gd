@@ -4,6 +4,12 @@ extends Node
 # This class is set up in the project as a global called `Log`
 #
 
+# Custom levels, which can be placed between the predefined ones as they are not consecutive
+# Less important than DEBUG
+const TRACE = HanpekiLogger.DEBUG >> 1
+# More important than WARN, but less than ERROR
+const IMPORTANT = HanpekiLogger.WARN << 1
+
 # Namespace for global logs
 static var global: HanpekiLogger.WithBoundNs
 # Namespace for logs related to the Script Manager
@@ -16,6 +22,12 @@ static var scriptManager: HanpekiLogger.WithBoundNs
 ##
 static func _init() -> void:
 	var options = HanpekiLogger.Options.new()
+	options.custom_levels.append_array(
+		[
+			{"level": TRACE, "name": "Trace"},
+			{"level": IMPORTANT, "name": "Important"},
+		]
+	)
 	if OS.is_debug_build():
 		# On debug builds we want to see every log call, so setting the minimum level to
 		# DEBUG (lowest level) achieves it
