@@ -347,63 +347,67 @@ func bind_ns(ns: StringName) -> WithBoundNs:
 ## Logs the given [param msg] with level = [enum HanpekiLogger.DEBUG] and an optional [param ns]
 ##
 func debug(msg: String, ns: StringName = NS_UNDEFINED) -> void:
-	message(DEBUG, msg, ns)
+	_message(DEBUG, msg, ns)
 
 
 ##
 ## Logs the given [param msg] with level = [enum HanpekiLogger.INFO] and an optional [param ns]
 ##
 func info(msg: String, ns: StringName = NS_UNDEFINED) -> void:
-	message(INFO, msg, ns)
+	_message(INFO, msg, ns)
 
 
 ##
 ## Logs the given [param msg] with level = [enum HanpekiLogger.CORE] and an optional [param ns]
 ##
 func core(msg: String, ns: StringName = NS_UNDEFINED) -> void:
-	message(CORE, msg, ns)
+	_message(CORE, msg, ns)
 
 
 ##
 ## Logs the given [param msg] with level = [enum HanpekiLogger.WARN] and an optional [param ns]
 ##
 func warn(msg: String, ns: StringName = NS_UNDEFINED) -> void:
-	message(WARN, msg, ns)
+	_message(WARN, msg, ns)
 
 
 ##
 ## Logs the given [param msg] with level = [enum HanpekiLogger.ERROR] and an optional [param ns]
 ##
 func error(msg: String, ns: StringName = NS_UNDEFINED) -> void:
-	message(ERROR, msg, ns)
+	_message(ERROR, msg, ns)
 
 
 ##
 ## Logs the given [param msg] with level = [enum HanpekiLogger.FATAL] and an optional [param ns]
 ##
 func fatal(msg: String, ns: StringName = NS_UNDEFINED) -> void:
-	message(FATAL, msg, ns)
+	_message(FATAL, msg, ns)
 
 
 ##
 ## Logs a [param msg] in a custom [param level] with an optional [param ns]
 ##
 func message(level: int, msg: String, ns: StringName = NS_UNDEFINED) -> void:
-	_message(level, msg, ns, true)
-
-
-##
-## Internal implementation of [method message], where [param enabled] tells if the message
-## was not filtered before reaching the logger (i.e. by a [WithBoundNs] with the level disabled).
-## Messages filtered by levels still reach the editor transport (when running from the editor),
-## so they can be filtered in the editor instead.
-##
-func _message(level: int, msg: String, ns: StringName, enabled: bool) -> void:
 	assert(_is_valid_level(level), "Trying to send a message using an invalid level")
 	assert(_registered_levels & level != NONE, "Trying to use an unregistered level")
+	_message(level, msg, ns)
 
+
+##
+## Internal implementation of every logging method, deciding if the message needs to be processed.
+## [param ns_level] is the level of the [WithBoundNs] logging the message, which can disable
+## levels only for its namespace. It's omitted ([enum INHERIT]) when logging directly.
+## Messages disabled by levels still reach the editor transport (when running from the editor),
+## so they can be filtered in the editor instead.
+##
+func _message(level: int, msg: String, ns: StringName, ns_level: int = INHERIT) -> void:
+	var enabled = level & _level != NONE && (ns_level == INHERIT || ns_level & level != NONE)
+	# stop as soon as possible when nothing needs the message
+	if !enabled && !_editor_transport:
+		return
 	var transports: Array[Transport] = []
-	if enabled && level & _level != NONE:
+	if enabled:
 		transports = _get_active_transports(level)
 	if transports.is_empty() && !_editor_transport:
 		return
@@ -856,43 +860,45 @@ class WithBoundNs:
 	## Logs the given [param msg] with level = [enum HanpekiLogger.DEBUG] using the bound namespace
 	##
 	func debug(msg: String) -> void:
-		_logger._message(DEBUG, msg, _ns, _is_active(DEBUG))
+		_logger._message(DEBUG, msg, _ns, _level)
 
 	##
 	## Logs the given [param msg] with level = [enum HanpekiLogger.INFO] using the bound namespace
 	##
 	func info(msg: String) -> void:
-		_logger._message(INFO, msg, _ns, _is_active(INFO))
+		_logger._message(INFO, msg, _ns, _level)
 
 	##
 	## Logs the given [param msg] with level = [enum HanpekiLogger.CORE] using the bound namespace
 	##
 	func core(msg: String) -> void:
-		_logger._message(CORE, msg, _ns, _is_active(CORE))
+		_logger._message(CORE, msg, _ns, _level)
 
 	##
 	## Logs the given [param msg] with level = [enum HanpekiLogger.WARN] using the bound namespace
 	##
 	func warn(msg: String) -> void:
-		_logger._message(WARN, msg, _ns, _is_active(WARN))
+		_logger._message(WARN, msg, _ns, _level)
 
 	##
 	## Logs the given [param msg] with level = [enum HanpekiLogger.ERROR] using the bound namespace
 	##
 	func error(msg: String) -> void:
-		_logger._message(ERROR, msg, _ns, _is_active(ERROR))
+		_logger._message(ERROR, msg, _ns, _level)
 
 	##
 	## Logs the given [param msg] with level = [enum HanpekiLogger.FATAL] using the bound namespace
 	##
 	func fatal(msg: String) -> void:
-		_logger._message(FATAL, msg, _ns, _is_active(FATAL))
+		_logger._message(FATAL, msg, _ns, _level)
 
 	##
 	## Logs a [param msg] in a custom [param level] with the bound namespace
 	##
 	func message(level: int, msg: String) -> void:
-		_logger._message(level, msg, _ns, _is_active(level))
+		assert(HanpekiLogger._is_valid_level(level), "Trying to send a message using an invalid level")
+		assert(_logger._registered_levels & level != NONE, "Trying to use an unregistered level")
+		_logger._message(level, msg, _ns, _level)
 
 	##
 	## Called on instanciation.
@@ -910,13 +916,3 @@ class WithBoundNs:
 		)
 		_ns = ns
 		_logger = logger
-
-	##
-	## Check if this bound instance is active for the given [param level].
-	## Having the level set to [enum HanpekiLogger.INHERIT] will always return [code]true[/code]
-	## for it to be checked in the bound logger.
-	##
-	func _is_active(level: int) -> bool:
-		if _level == HanpekiLogger.INHERIT:
-			return true
-		return _level & level != NONE
