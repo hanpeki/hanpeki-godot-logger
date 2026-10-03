@@ -151,8 +151,8 @@ func set_row_break(key: Variant, enabled: bool) -> void:
 ##
 func _update_header_margin() -> void:
 	var scroll_bar = _scroll.get_v_scroll_bar()
-	var margin = scroll_bar.get_combined_minimum_size().x if scroll_bar.visible else 0
-	_header_margin.add_theme_constant_override("margin_right", int(margin))
+	var margin = int(scroll_bar.get_combined_minimum_size().x) if scroll_bar.visible else 0
+	_header_margin.add_theme_constant_override("margin_right", margin)
 
 
 func _notification(what: int) -> void:
