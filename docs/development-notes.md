@@ -98,8 +98,8 @@ These are checked by the [Asset Library tests](../test/test_godot_assets_library
   No other addons used for development (`addons/gut`, `addons/gdLinter`), tests, docs, examples or scripts should be listed.
 - The plugin has no script warnings. [project.godot](../project.godot) includes the plugin folder in the warnings (`directory_rules`, as `res://addons` is excluded by default) and raises every warning enabled by default to error, so any warning makes the script fail to load. The tests check these settings and load every script of the plugin, including the editor ones, which are not used by other tests. As the levels are project-wide, `test/` and `examples/` follow the same rules.
 - The CI workflows run Godot with the same version as [project.godot](../project.godot).
-- The icon ([docs/images/icon.png](./images/icon.png)) is a square PNG/JPG of at least 128×128 pixels in a folder with `.gdignore`.
-- Images used in Markdown files exist and are in folders with an empty `.gdignore` file, so Godot doesn't import them.
+- The icon ([icon.png](../icon.png)) is a square PNG/JPG of at least 128×128 pixels.
+- Images used in Markdown files exist and are in folders with an empty `.gdignore` file, so Godot doesn't import them. The icons in the root of the project ([icon.png](../icon.png) and [icon.svg](../icon.svg)) are excluded from said check.
 
 ## Class.create() vs Class.new()
 
