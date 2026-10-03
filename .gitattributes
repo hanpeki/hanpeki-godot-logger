@@ -8,3 +8,10 @@
 *.mp3 binary
 *.ogg binary
 *.wav binary
+
+# Only the plugin is included in the archives downloaded by the Godot Asset Library
+/** export-ignore
+/addons !export-ignore
+/addons/** !export-ignore
+/addons/gut/** export-ignore
+/addons/gdLinter/** export-ignore
