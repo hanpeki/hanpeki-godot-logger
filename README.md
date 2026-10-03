@@ -1,4 +1,4 @@
-# hanpeki-godot-logger
+# <img src="./icon.svg" height="24" /> hanpeki-godot-logger
 
 [![Tests](https://github.com/hanpeki/hanpeki-godot-logger/actions/workflows/tests.yml/badge.svg)](https://github.com/hanpeki/hanpeki-godot-logger/actions/workflows/tests.yml) [![Linting](https://github.com/hanpeki/hanpeki-godot-logger/actions/workflows/linting.yml/badge.svg)](https://github.com/hanpeki/hanpeki-godot-logger/actions/workflows/linting.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 

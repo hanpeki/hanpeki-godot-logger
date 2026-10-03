@@ -744,9 +744,12 @@ class Transport:
 	func _get_time_str(data: MsgData) -> String:
 		if _time_format == TimeFormat.RELATIVE:
 			@warning_ignore("integer_division")
-			var time = Time.get_time_dict_from_unix_time(data.utime / 1000)
-			var ms = data.utime % 1000
-			return "%02d:%02d:%02d.%03d" % [time.hour, time.minute, time.second, ms]
+			var elapsed = Time.get_time_dict_from_unix_time(data.utime / 1000)
+			var elapsed_ms = data.utime % 1000
+			return (
+				"%02d:%02d:%02d.%03d"
+				% [elapsed.hour, elapsed.minute, elapsed.second, elapsed_ms]
+			)
 
 		var unix = (
 			data.time
@@ -757,8 +760,8 @@ class Transport:
 		var ms = (HanpekiLogger._start_unix_ms + data.utime) % 1000
 
 		if _time_format == TimeFormat.UTC_TIME || _time_format == TimeFormat.SYSTEM_TIME:
-			var time = Time.get_time_dict_from_unix_time(unix)
-			return "%02d:%02d:%02d.%03d" % [time.hour, time.minute, time.second, ms]
+			var day_time = Time.get_time_dict_from_unix_time(unix)
+			return "%02d:%02d:%02d.%03d" % [day_time.hour, day_time.minute, day_time.second, ms]
 
 		var time = Time.get_datetime_dict_from_unix_time(unix)
 		return (

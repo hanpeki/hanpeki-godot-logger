@@ -69,7 +69,7 @@ temp_file=$(mktemp)
 # Calculate variables to use
 zip_file="${OUTPUT_FOLDER}/$(basename "${PLUGIN_FOLDER}")-${PLUGIN_VERSION}.zip"
 # Initial dot needs to be removed for paths to be preserved
-find "${PLUGIN_FOLDER}" -type f ! -name "*.uid" | sed 's|^\./||' > "${temp_file}"
+find "${PLUGIN_FOLDER}" -type f | sed 's|^\./||' > "${temp_file}"
 
 # Output feedback
 echo -e "Creating a .zip file for ${COLOR_NAME}${PLUGIN_NAME} ${COLOR_VERSION}v${PLUGIN_VERSION}${COLOR_RESET} > ${COLOR_FILE}${zip_file}${COLOR_RESET}"

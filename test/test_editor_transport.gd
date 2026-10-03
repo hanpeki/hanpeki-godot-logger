@@ -202,7 +202,9 @@ func test_breakpoints_both_fallback() -> void:
 func test_breakpoints_file() -> void:
 	var path = HanpekiLoggerEditorTransport.BREAKPOINTS_FILE
 	# keep the file of the project (if any) to restore it after the test
-	var original = FileAccess.get_file_as_string(path) if FileAccess.file_exists(path) else null
+	var original = null
+	if FileAccess.file_exists(path):
+		original = FileAccess.get_file_as_string(path)
 
 	HanpekiLoggerEditorTransport._save_breakpoints_file([HanpekiLogger.CORE, ["UI"], true, false])
 	HanpekiLoggerEditorTransport._set_breakpoints([0, [], false, true])

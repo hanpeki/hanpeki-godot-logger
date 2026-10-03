@@ -97,9 +97,9 @@ static func _get_file(file_path: String, max_files: int = 0) -> FileAccess:
 
 	# Reuse the file already opened for the same template in this session
 	if _template_paths.has(template):
-		var file = _get_opened_file(_template_paths[template])
-		if file:
-			return file
+		var reused_file = _get_opened_file(_template_paths[template])
+		if reused_file:
+			return reused_file
 
 	var has_placeholders = _placeholder_regex.search(template) != null
 	var existing: Array[Dictionary] = []
