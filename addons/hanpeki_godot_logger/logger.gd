@@ -620,8 +620,10 @@ class Transport:
 	var _level: int = HanpekiLogger.INHERIT
 	## How to format the time with [member _get_time_str]
 	var _time_format: TimeFormat = TimeFormat.SYSTEM_TIME
-	## Timezone offset in secs
-	var _time_bias: int
+	## Timezone offset in secs.
+	## Initialized here instead of in [code]_init[/code], as Godot doesn't call the base
+	## [code]_init[/code] when a transport defines its own one without calling [code]super()[/code]
+	var _time_bias: int = Time.get_time_zone_from_system().bias * 60
 	## Evaluated [member Options.stack_mode]: StackLevelMode | Dictionary[int, StackLevelMode]
 	var _stack_mode: Variant = StackLevelMode.INHERIT
 	## Associated logger instance when attached (WeakRef | null)
@@ -736,9 +738,6 @@ class Transport:
 		if !logger:
 			return StackLevelMode.NONE
 		return _resolve_stack_mode(level, (logger as HanpekiLogger)._get_stack_mode(level))
-
-	func _init() -> void:
-		_time_bias = Time.get_time_zone_from_system().bias * 60
 
 	## Get the time to log for the given [param data]
 	func _get_time_str(data: MsgData) -> String:

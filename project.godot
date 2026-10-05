@@ -23,7 +23,6 @@ config/icon="res://icon.svg"
 
 Log="*res://examples/singletons/log.gd"
 
-
 [debug]
 
 gdscript/warnings/directory_rules={

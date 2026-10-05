@@ -1,5 +1,7 @@
 extends GutTest
 
+const FileTestUtils = preload("res://test/utils/file_test_utils.gd")
+
 ## Unix time in milliseconds for 2025-01-02 03:04:05.678 UTC
 const UNIX_MS = 1735787045678
 
@@ -13,6 +15,24 @@ func before_each() -> void:
 
 func after_each() -> void:
 	HanpekiLogger._start_unix_ms = _original_start_unix_ms
+	FileTestUtils.remove_folder()
+
+
+##
+## Test that every transport uses the system timezone, even the ones defining their own
+## [code]_init[/code] without calling [code]super()[/code] (as Godot doesn't call the
+## [code]_init[/code] of the base class then).
+## Note that this can only fail when the tests run in a system with a timezone other than UTC.
+##
+func test_transports_time_bias() -> void:
+	var bias = Time.get_time_zone_from_system().bias * 60
+	var file_options = HanpekiLoggerFileTransport.Options.new()
+	file_options.file_path = "hanpeki_logger_tests/log.txt"
+
+	assert_eq(HanpekiLoggerConsoleTransport.create()._time_bias, bias)
+	assert_eq(HanpekiLoggerFileTransport.create(file_options)._time_bias, bias)
+	assert_eq(HanpekiLoggerTestTransport.create()._time_bias, bias)
+	assert_eq(CustomInitTransport.new(true)._time_bias, bias)
 
 
 ##
@@ -113,3 +133,18 @@ func _create_msg_data(unix_ms: int) -> HanpekiLogger.MsgData:
 	@warning_ignore("integer_division")
 	data.time = (HanpekiLogger._start_unix_ms + data.utime) / 1000
 	return data
+
+
+##
+## Transport defining its own [code]_init[/code] without calling [code]super()[/code]
+##
+class CustomInitTransport:
+	extends HanpekiLogger.Transport
+
+	var _custom: bool
+
+	func _init(custom: bool) -> void:
+		_custom = custom
+
+	func process(_data: HanpekiLogger.MsgData) -> void:
+		pass
