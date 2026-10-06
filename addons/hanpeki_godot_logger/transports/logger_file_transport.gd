@@ -28,8 +28,15 @@ static var _placeholder_regex: RegEx = RegEx.create_from_string("\\{(DATETIME|N(
 ## to detect unknown ones
 static var _any_placeholder_regex: RegEx = RegEx.create_from_string("\\{[^{}/]*\\}")
 
-## File to write into ([code]null[/code] if it couldn't be opened)
+## File to write into ([code]null[/code] if it couldn't be opened or it's not opened yet)
 var _file: FileAccess
+## Whether opening [member _file] has already been tried, so it's not retried with every message
+## if it fails (see [member Options.create_file_on_start])
+var _file_requested: bool = false
+## Path of the file to open, with placeholders (see [member Options.file_path])
+var _file_path: String
+## Maximum number of log files to keep (see [member Options.max_files])
+var _max_files: int
 ## Minimum time between flushes, in milliseconds (see [member Options.flush_interval_ms])
 var _flush_interval_ms: int
 ## Levels that are always flushed right away (see [member Options.flush_levels])
@@ -48,6 +55,8 @@ static func create(options: Options = null) -> HanpekiLoggerFileTransport:
 
 
 func process(data: HanpekiLogger.MsgData) -> void:
+	if !_file_requested:
+		_open_file()
 	if !_file:
 		return
 	var time = _get_time_str(data)
@@ -70,7 +79,12 @@ func set_options(options: Transport.Options) -> void:
 	assert(options.max_files >= 0, "HanpekiLoggerFileTransport max_files can't be negative")
 	var file_path_error = _validate_file_path(options.file_path)
 	assert(file_path_error.is_empty(), file_path_error)
-	_file = _get_file(options.file_path, options.max_files)
+	_file_path = options.file_path
+	_max_files = options.max_files
+	_file = null
+	_file_requested = false
+	if options.create_file_on_start:
+		_open_file()
 	_flush_interval_ms = options.flush_interval_ms
 	_flush_levels = options.flush_levels
 
@@ -83,6 +97,15 @@ func set_options(options: Transport.Options) -> void:
 func _init(options: Options) -> void:
 	assert(options, "No options found. Please use HanpekiLoggerFileTransport.create()")
 	set_options(options)
+
+
+##
+## Open the file to write into, based on the current options.
+## It's only tried once (until the options change), so errors are not reported with every message.
+##
+func _open_file() -> void:
+	_file_requested = true
+	_file = _get_file(_file_path, _max_files)
 
 
 ##
@@ -379,3 +402,9 @@ class Options:
 	## [member flush_interval_ms], so the important messages are not lost if the app crashes.
 	## Defaults to [code]HanpekiLogger.ERROR | HanpekiLogger.FATAL[/code].
 	var flush_levels: int = HanpekiLogger.ERROR | HanpekiLogger.FATAL
+	## When [code]true[/code], the file is created (and the old ones rotated) when the transport
+	## is created. Otherwise, it's delayed until the first message is logged, so no empty files
+	## are created and the options (i.e. [member file_path] from settings loaded later) can still
+	## be changed via [method HanpekiLogger.Transport.set_options] before anything is logged.
+	## Defaults to [code]false[/code].
+	var create_file_on_start: bool = false

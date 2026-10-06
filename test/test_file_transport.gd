@@ -108,6 +108,78 @@ func test_file_open_error() -> void:
 
 
 ##
+## Test that, by default, the file is not created (nor the old ones rotated) until the first
+## message is logged
+##
+func test_file_created_on_first_message() -> void:
+	assert_false(HanpekiLoggerFileTransport.Options.new().create_file_on_start)
+
+	FileTestUtils.create_files(["log-1.txt", "log-2.txt", "log-3.txt"])
+	var options = HanpekiLoggerFileTransport.Options.new()
+	options.file_path = TEST_FOLDER + "/log-{N}.txt"
+	options.max_files = 2
+	var transport = HanpekiLoggerFileTransport.create(options)
+
+	assert_null(transport._file)
+	assert_eq(
+		FileTestUtils.get_files(), ["log-1.txt", "log-2.txt", "log-3.txt"] as Array[String]
+	)
+
+	var instance = HanpekiLogger.create()
+	instance.add_transport(transport)
+	instance.error("First message")
+
+	assert_eq(transport._file.get_path(), TEST_FOLDER + "/log-4.txt")
+	assert_eq(FileTestUtils.get_files(), ["log-3.txt", "log-4.txt"] as Array[String])
+	assert_string_contains(
+		FileAccess.get_file_as_string(TEST_FOLDER + "/log-4.txt"), "First message"
+	)
+
+
+##
+## Test that the options can be changed before the first message is logged, without creating
+## the file of the previous ones
+##
+func test_options_changed_before_first_message() -> void:
+	var transport = FileTestUtils.create_transport(TEST_FOLDER + "/old.txt", 0, false)
+
+	var options = HanpekiLoggerFileTransport.Options.new()
+	options.file_path = TEST_FOLDER + "/new.txt"
+	transport.set_options(options)
+
+	var instance = HanpekiLogger.create()
+	instance.add_transport(transport)
+	instance.error("Message")
+
+	assert_false(FileAccess.file_exists(TEST_FOLDER + "/old.txt"))
+	assert_string_contains(FileAccess.get_file_as_string(TEST_FOLDER + "/new.txt"), "Message")
+
+
+##
+## Test that, when the file is created on the first message and it can't be opened, the error is
+## reported only once
+##
+func test_delayed_file_open_error() -> void:
+	DirAccess.make_dir_recursive_absolute(TEST_FOLDER)
+	var blocker = TEST_FOLDER + "/blocker"
+	FileAccess.open(blocker, FileAccess.WRITE).close()
+	var path = blocker + "/log.txt"
+
+	var transport = FileTestUtils.create_transport(path, 0, false)
+	assert_push_error_count(0)
+
+	var instance = HanpekiLogger.create()
+	instance.add_transport(transport)
+	instance.error("Message 1")
+	instance.error("Message 2")
+	assert_null(transport._file)
+	# A second error would be left unhandled, failing the test
+	assert_push_error("can't open the log file")
+	_handle_engine_errors()
+	assert_false(FileAccess.file_exists(path))
+
+
+##
 ## Test the default flush options
 ##
 func test_flush_defaults() -> void:

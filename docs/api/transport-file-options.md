@@ -10,7 +10,9 @@ Path to use for the file to write to.
 
 Relative paths are relative to `user://`, while absolute ones (`user://`, `res://` or OS paths like `C:/logs/game.txt`) are used as they are. Note that `res://` is read-only in exported projects.
 
-If the file can't be opened, the error is reported via [`push_error`](https://docs.godotengine.org/en/4.6/classes/class_@globalscope.html#class-globalscope-method-push-error) and the transport won't log anything.
+The file is created when the first message is logged, unless [`create_file_on_start`](#create-file-on-start) is enabled.
+
+If the file can't be opened, the error is reported (once) via [`push_error`](https://docs.godotengine.org/en/4.6/classes/class_@globalscope.html#class-globalscope-method-push-error) and the transport won't log anything.
 
 Multiple transports using the same path share the same opened file, which is closed automatically when the last of them is freed.
 
@@ -60,3 +62,14 @@ Defaults to `0` in debug builds and `5000` (5 seconds) in release builds.
 Union of the levels that are always flushed right away, regardless of [`flush_interval_ms`](#flush-interval-ms), so the important messages are not lost if the app crashes.
 
 Defaults to `HanpekiLogger.ERROR | HanpekiLogger.FATAL`.
+
+
+## <a name="create-file-on-start"></a> create_file_on_start: [bool](https://docs.godotengine.org/en/4.6/classes/class_bool.html)
+
+When `true`, the log file is created (and the old ones rotated, see [`max_files`](#max-files)) as soon as the transport is created.
+
+When `false`, it's delayed until the first message is logged. This avoids creating empty log files, and allows creating the transport before the values needed for its options are available (i.e. a [`file_path`](#file-path) read from settings loaded later), changing them via [`set_options`](./hanpeki-logger-transport.md) before anything is logged.
+
+Note that the `{DATETIME}` placeholder uses the time when the file is created.
+
+Defaults to `false`.

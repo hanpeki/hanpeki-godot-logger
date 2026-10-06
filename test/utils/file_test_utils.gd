@@ -8,14 +8,19 @@ const TEST_FOLDER = "user://hanpeki_logger_tests"
 
 
 ##
-## Create a [HanpekiLoggerFileTransport] writing to the given [param path]
+## Create a [HanpekiLoggerFileTransport] writing to the given [param path].
+## The file is created right away by default (see
+## [member HanpekiLoggerFileTransport.Options.create_file_on_start]) so it can be checked.
 ##
 static func create_transport(
-	path: String, max_files: int = HanpekiLoggerFileTransport.DEFAULT_MAX_FILES
+	path: String,
+	max_files: int = HanpekiLoggerFileTransport.DEFAULT_MAX_FILES,
+	create_file_on_start: bool = true
 ) -> HanpekiLoggerFileTransport:
 	var options = HanpekiLoggerFileTransport.Options.new()
 	options.file_path = path
 	options.max_files = max_files
+	options.create_file_on_start = create_file_on_start
 	return HanpekiLoggerFileTransport.create(options)
 
 
