@@ -68,6 +68,7 @@ Below the table:
 - `Filter Messages` shows only the messages containing the given text (case-insensitive).
 - Clear the messages.
 - Preserve the messages when running the game again (instead of clearing them). A separator marks where each new run starts.
+- Auto focus the `Logs` tab when running the game (enabled by default), as the editor focuses the `Output` one otherwise.
 - Show or hide the `Namespaces` and `Levels` lists.
 - The breakpoint controls (see [Breakpoints](#breakpoints)).
 

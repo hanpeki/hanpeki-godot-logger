@@ -14,6 +14,7 @@ const STATE_KEYS = [
 	"show_namespaces",
 	"show_levels",
 	"preserve_logs",
+	"auto_focus",
 	"disabled_levels",
 	"disabled_namespaces",
 	"split_offset",
@@ -37,6 +38,7 @@ func _init() -> void:
 	set_available_layouts(DOCK_LAYOUT_HORIZONTAL | DOCK_LAYOUT_FLOATING)
 	panel = LogsPanel.new()
 	add_child(panel)
+	panel.focus_requested.connect(make_visible)
 
 
 func _save_layout_to_config(config: ConfigFile, section: String) -> void:

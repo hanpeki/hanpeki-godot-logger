@@ -10,6 +10,8 @@ extends VBoxContainer
 signal state_changed
 ## Emitted when the breakpoints configuration changes (see [method get_breakpoints_payload])
 signal breakpoints_changed
+## Emitted when the panel should be shown (i.e. a game session starts with the auto focus enabled)
+signal focus_requested
 
 ## Columns of the entries tree
 enum Column { TIME, LEVEL, NS, MSG }
@@ -57,6 +59,8 @@ var _ns_toggle: Button
 var _levels_toggle: Button
 ## Toggle to preserve the entries when a new game session starts (instead of clearing them)
 var _preserve_toggle: Button
+## Toggle to focus the dock when a new game session starts
+var _auto_focus_toggle: Button
 ## Button to remove every entry
 var _clear_button: Button
 ## Toggle to switch between stopping on messages matching both the level and namespace
@@ -229,26 +233,31 @@ func clear() -> void:
 
 ##
 ## Called when a new game session starts, to clear the entries unless they are preserved
-## (in which case, a separator is added to know where the new session starts)
+## (in which case, a separator is added to know where the new session starts), and to request the
+## focus if the auto focus is enabled
 ##
 func on_session_started() -> void:
 	if !_preserve_toggle.button_pressed:
 		clear()
 	elif !_entries.is_empty():
 		_add_separator()
+	if _auto_focus_toggle.button_pressed:
+		# deferred, so it happens after the editor focuses its own Output dock
+		focus_requested.emit.call_deferred()
 
 
 ##
 ## Get the state of the panel to be saved (and restored with [method apply_state]):
-## the visibility of the filters, the preserve toggle, the disabled levels (as the union of their
-## values) and namespaces, and the position of the splits (between the entries and the filters,
-## and between the namespace and level filters) and the width of the resizable columns
+## the visibility of the filters, the preserve and auto focus toggles, the disabled levels (as the
+## union of their values) and namespaces, and the position of the splits (between the entries and
+## the filters, and between the namespace and level filters) and the width of the resizable columns
 ##
 func get_state() -> Dictionary:
 	return {
 		"show_namespaces": _ns_toggle.button_pressed,
 		"show_levels": _levels_toggle.button_pressed,
 		"preserve_logs": _preserve_toggle.button_pressed,
+		"auto_focus": _auto_focus_toggle.button_pressed,
 		"disabled_levels": _disabled_levels,
 		"disabled_namespaces": _disabled_namespaces.keys(),
 		"split_offset": _main_split.split_offset,
@@ -274,6 +283,8 @@ func apply_state(state: Dictionary) -> void:
 		_levels_list.visible = state.show_levels
 	if typeof(state.get("preserve_logs")) == TYPE_BOOL:
 		_preserve_toggle.set_pressed_no_signal(state.preserve_logs)
+	if typeof(state.get("auto_focus")) == TYPE_BOOL:
+		_auto_focus_toggle.set_pressed_no_signal(state.auto_focus)
 	if typeof(state.get("disabled_levels")) == TYPE_INT:
 		_disabled_levels = state.disabled_levels
 		for level in _levels:
@@ -341,6 +352,7 @@ func _notification(what: int) -> void:
 		_ns_toggle.icon = get_theme_icon("TripleBar", "EditorIcons")
 		_levels_toggle.icon = get_theme_icon("ProjectList", "EditorIcons")
 		_preserve_toggle.icon = get_theme_icon("Pin", "EditorIcons")
+		_auto_focus_toggle.icon = get_theme_icon("Anchor", "EditorIcons")
 		_clear_button.icon = get_theme_icon("Clear", "EditorIcons")
 		_update_ignore_breakpoints_icon()
 		# deferred, so the button has its theme (font) updated when measuring the text
@@ -424,6 +436,9 @@ func _build_ui() -> void:
 	)
 	_preserve_toggle.toggled.connect(func(_pressed): state_changed.emit())
 	bottom.add_child(_preserve_toggle)
+	_auto_focus_toggle = _create_tool_button("Auto focus the Logs tab when running the game", true)
+	_auto_focus_toggle.toggled.connect(func(_pressed): state_changed.emit())
+	bottom.add_child(_auto_focus_toggle)
 
   #
   # ↑ filter/messages buttons  ↓ panels buttons
